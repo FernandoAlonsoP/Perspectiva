@@ -60,7 +60,7 @@ function cartesianoLienzo(T, P, limite) {
 function linea(ctx, a, b) { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
 
 // Dimensiones lógicas del lienzo y cajas de etiquetas ya colocadas (para no solaparlas)
-let lienzoW = 0, lienzoH = 0, ocupadas = [], margenArriba = 0;
+let lienzoW = 0, lienzoH = 0, ocupadas = [], margenArriba = 0, margenAbajo = 0;
 
 function etiqueta(ctx, texto, x, y, color, g, alinear = 'left') {
   ctx.font = `600 ${Math.round(13 * g)}px system-ui, sans-serif`;
@@ -212,6 +212,7 @@ export function dibujarSuperposicion(ctx, r, T, op = {}) {
   const W = op.ancho || ctx.canvas.width, H = op.alto || ctx.canvas.height;
   lienzoW = W; lienzoH = H; ocupadas = [];
   margenArriba = op.margenArriba || 0;   // espacio ocupado por los textos de arriba de la app
+  margenAbajo = op.margenAbajo || 0;     // y por los botones de abajo
   const g = op.g || Math.max(1, Math.min(W, H) / 700);
   const limite = 1e6;
   etiquetarFamilias(r.familias);
@@ -347,7 +348,7 @@ function dibujarPuntoFuga(ctx, r, T, f, W, H, g, limite) {
     const n = Math.hypot(d[0], d[1]) || 1;
     const ux = d[0] / n, uy = d[1] / n;
     const tx = ux > 0 ? (W - m - C[0]) / ux : ux < 0 ? (m - C[0]) / ux : Infinity;
-    const ty = uy > 0 ? (H - m - C[1]) / uy : uy < 0 ? (Math.max(m, margenArriba) - C[1]) / uy : Infinity;
+    const ty = uy > 0 ? (H - Math.max(m, margenAbajo) - C[1]) / uy : uy < 0 ? (Math.max(m, margenArriba) - C[1]) / uy : Infinity;
     const t = Math.min(tx, ty);
     const x = C[0] + ux * t, y = C[1] + uy * t;
     const s = 14 * g;

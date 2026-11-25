@@ -1,5 +1,10 @@
 # Perspectiva — puntos de fuga con la cámara del móvil
 
+**Universidad de Navarra · Laboratorio de Geometría y Forma**
+
+© 2026 Carlos Naya y Fernando Alonso, profesores de la Universidad de Navarra. Todos los derechos reservados.
+Desarrollada con la asistencia de Claude Opus 5.5 (Anthropic). El diseño docente, las decisiones y la revisión son de los autores.
+
 Web app para la asignatura *Laboratorio de geometría y forma* (expresión gráfica arquitectónica). El alumno apunta el móvil a un edificio, una calle o un interior y ve sobre la imagen real:
 
 - unas pocas **líneas de fuga** por familia (las más largas y bien repartidas), trazadas desde su punto de fuga hasta el borde de la imagen;
@@ -13,7 +18,8 @@ No hay instalación, cuentas, servidor ni analítica. **Todo se procesa en el m�
 
 | Botón | Qué hace |
 |---|---|
-| **Congelar** | Fija el fotograma y lo analiza con más calidad. Después se pueden **arrastrar los puntos de fuga y el horizonte** para explorar el encaje. |
+| **Congelar** | Fija el fotograma y lo analiza con más calidad. Después se pueden **arrastrar los puntos de fuga y el horizonte** para explorar el encaje, **pellizcar para alejar** (o rueda del ratón) y arrastrar para mover la vista. |
+| **Ver fugas** | Con la imagen congelada, encuadra la foto y sus puntos de fuga: se ve cómo las líneas continúan fuera de la foto hasta encontrarse. Al exportar en esta vista, la imagen incluye el espacio exterior. |
 | **Reanudar** / **Cámara** | Vuelve a la cámara en vivo. |
 | **Foto** | Analiza una foto de la galería. Usa la focal EXIF si la foto la trae. |
 | **Exportar** | Guarda un PNG con la superposición y un JSON con el registro, usando la hoja de compartir del móvil o una descarga. |
@@ -90,7 +96,7 @@ node test/e2e.mjs        # recorre la app completa con una cámara falsa → cap
 node test/e2e.mjs salon vertical   # lo mismo con otra escena y en vertical
 ```
 
-### Resultado del banco (v0.3.0)
+### Resultado del banco (v0.4.0)
 
 Hay 10 escenas sintéticas: cubo en 1 punto; cubo en 2 puntos a 26 mm y a 16 mm; pasillo; calle; fachada vista desde abajo; calle con teleobjetivo de 50 mm; edificio con vegetación delante; salón casi frontal de poco contraste; y vegetación sin arquitectura. Cada una se analiza en calidad vivo y alta, con y sin sensor: **38/38 superadas**.
 
@@ -153,6 +159,13 @@ test/                 escenas sintéticas, banco y prueba de la app completa
 
 Son unas 2.200 líneas, sin dependencias externas ni paso de compilación. Pesa unos 150 KB en total. OpenCV.js pesaría unos 8–10 MB.
 
+## Autoría y créditos
+
+- **Autores:** Carlos Naya y Fernando Alonso, profesores de la Universidad de Navarra.
+- **Contexto:** asignatura *Laboratorio de Geometría y Forma* (expresión gráfica arquitectónica).
+- **Desarrollo asistido por IA:** el código se escribió con la asistencia de Claude Opus 5.5 (Anthropic), a partir de los encargos, las pruebas en el aula y las correcciones de los autores. El registro de decisiones de abajo documenta ese proceso.
+- La marca aparece **solo como texto** (inicio, rótulo discreto en la app, pie de las imágenes exportadas, «Acerca de» y JSON). Para usar el logotipo oficial hay que pedir los archivos y las normas de uso al servicio de identidad corporativa de la Universidad.
+
 ## Registro de decisiones técnicas
 
 Este desarrollo forma parte de una investigación sobre co-autoría con agentes de IA. Se anotan las decisiones con su motivo y quién las tomó.
@@ -178,6 +191,8 @@ Este desarrollo forma parte de una investigación sobre co-autoría con agentes 
 | 2026-11-25 | v0.3.0 · Aristas ambiguas a la familia con la que mejor encajan; las compatibles con la vertical del sensor salen de las horizontales | En una prueba real, una vertical que cruzaba el punto de fuga central se dibujaba como línea de fuga | Agente, a partir de las capturas |
 | 2026-11-25 | v0.3.0 · Horizonte del sensor oculto por defecto | Discrepaba 30–50 px del de la imagen (depende de la focal) y dos horizontes confunden al alumno | Agente |
 | 2026-11-25 | v0.3.0 · Autocomprobación geométrica y exportación de la foto original | El profesor no sabía «hasta qué punto está haciendo bien el análisis»; la foto limpia permite reanalizar y afinar | Agente |
+| 2026-11-25 | v0.4.0 · Zoom y desplazamiento en la imagen congelada; botón «Ver fugas»; exportación de la vista ampliada | Petición del profesor tras la 3.ª prueba real: «ver la continuidad de las líneas hasta dónde van las fugas» | Profesor (petición), agente (solución) |
+| 2026-11-25 | v0.4.0 · Marca institucional discreta y créditos (autores, Universidad de Navarra, asistencia de IA) | Petición de los autores; reconocer la asistencia de IA es coherente con la investigación sobre co-autoría | Profesor |
 | 2026-11-25 | Sin cámara simulada en móvil: queda pendiente probar en iPhone y Android reales | No se puede verificar desde el entorno de desarrollo | — |
 
 ## Referencias técnicas

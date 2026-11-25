@@ -4,7 +4,7 @@
 // El JSON es el dato que se usará en el estudio docente.
 // =============================================================================
 
-import { CONFIG, VERSION } from './config.js';
+import { CONFIG, VERSION, CREDITOS } from './config.js';
 import { dibujarSuperposicion } from './overlay.js';
 import { aCartesiano } from './vision/geometria.js';
 
@@ -20,6 +20,9 @@ export function construirRegistro(r, contexto) {
   return {
     app: 'perspectiva',
     version: VERSION,
+    institucion: CREDITOS.institucion,
+    autores: `© ${CREDITOS.anio} ${CREDITOS.autores}`,
+    desarrollo: CREDITOS.ia,
     fecha: new Date().toISOString(),
     modo: contexto.modo === 'B' ? 'B · muestra + desviación' : 'A · solo muestra',
     origen: contexto.origen,                 // 'camara' | 'foto'
@@ -61,18 +64,48 @@ export function construirRegistro(r, contexto) {
   };
 }
 
-/** Genera la imagen a tamaño real con la superposición. */
+/** Pie discreto con la autoría, abajo a la derecha. */
+function pie(ctx, W, H) {
+  const t = Math.max(11, Math.round(Math.min(W, H) / 70));
+  ctx.save();
+  ctx.font = `500 ${t}px system-ui, sans-serif`;
+  const texto = `${CREDITOS.app} · ${CREDITOS.institucion}`;
+  const w = ctx.measureText(texto).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(W - w - 2.2 * t, H - 2.2 * t, w + 1.4 * t, 1.6 * t);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(texto, W - w - 1.5 * t, H - 1.4 * t);
+  ctx.restore();
+}
+
+/**
+ * Genera la imagen con la superposición. Si `marco` (px de imagen) es mayor que
+ * la foto —vista alejada—, se exporta también el espacio exterior con las
+ * líneas llegando a sus puntos de fuga.
+ */
 async function construirImagen(fuente, r, contexto) {
-  const s = Math.min(1, LADO_MAX_EXPORTACION / Math.max(r.ancho, r.alto));
+  const m = contexto.marco || { x0: 0, y0: 0, x1: r.ancho, y1: r.alto };
+  const anchoM = m.x1 - m.x0, altoM = m.y1 - m.y0;
+  const s = Math.min(LADO_MAX_EXPORTACION / Math.max(anchoM, altoM), contexto.marco ? 4 : 1);
   const c = document.createElement('canvas');
-  c.width = Math.round(r.ancho * s);
-  c.height = Math.round(r.alto * s);
+  c.width = Math.round(anchoM * s);
+  c.height = Math.round(altoM * s);
   const ctx = c.getContext('2d');
-  ctx.drawImage(fuente, 0, 0, c.width, c.height);
-  dibujarSuperposicion(ctx, r, { escala: s, ox: 0, oy: 0 }, {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, c.width, c.height);
+  const T = { escala: s, ox: -m.x0 * s, oy: -m.y0 * s };
+  ctx.drawImage(fuente, T.ox, T.oy, r.ancho * s, r.alto * s);
+  if (contexto.marco) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(T.ox, T.oy, r.ancho * s, r.alto * s);
+  }
+  dibujarSuperposicion(ctx, r, T, {
     modo: contexto.modo, rejilla: contexto.rejilla, aristas: contexto.aristas, compararSensor: contexto.compararSensor,
     g: Math.max(1.5, Math.min(c.width, c.height) / 600), seleccion: null,
   });
+  pie(ctx, c.width, c.height);
   return new Promise((ok) => c.toBlob(ok, 'image/png'));
 }
 

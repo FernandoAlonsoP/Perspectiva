@@ -6,8 +6,9 @@
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Perspectiva</title>
-  <meta name="description" content="Ver los puntos de fuga y el horizonte de una escena real con la cámara del móvil.">
+  <title>Perspectiva · Universidad de Navarra</title>
+  <meta name="description" content="Ver los puntos de fuga y el horizonte de una escena real con la cámara del móvil. Laboratorio de Geometría y Forma, Universidad de Navarra.">
+  <meta name="author" content="Carlos Naya y Fernando Alonso, Universidad de Navarra">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icono.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icono-180.png">
@@ -18,7 +19,9 @@
   <!-- Pantalla de inicio -->
   <section id="inicio">
     <div class="inicio-contenido">
+      <p class="marca">Universidad de Navarra</p>
       <h1>Perspectiva</h1>
+      <p class="asignatura">Laboratorio de Geometría y Forma</p>
       <p class="subtitulo">Apunta a un edificio, una calle o un interior y verás sus <strong>puntos de fuga</strong> y su <strong>horizonte</strong>.</p>
       <ul class="leyenda">
         <li><span class="punto" data-color="0"></span><span class="punto" data-color="1"></span> Familias de líneas horizontales y su punto de fuga</li>
@@ -29,6 +32,10 @@
       <button id="btn-foto-inicio" class="boton">Analizar una foto</button>
       <p class="privacidad">Todo se procesa en tu móvil. Ninguna imagen sale del dispositivo.</p>
       <p class="nota">Te pedirá permiso para la cámara y, en iPhone, para el sensor de movimiento (sirve para saber si inclinas el móvil).</p>
+      <footer class="creditos">
+        <p>© 2026 Carlos Naya y Fernando Alonso<br>Profesores de la Universidad de Navarra</p>
+        <p class="ia">Desarrollada con la asistencia de Claude Opus 5.5 (Anthropic)</p>
+      </footer>
     </div>
   </section>
 
@@ -46,7 +53,10 @@
     </header>
 
     <div id="mensaje" class="mensaje" hidden></div>
+    <div class="rotulo">Universidad de Navarra · Perspectiva</div>
     </div>
+
+    <button id="btn-vista" class="boton-flotante" hidden>Ver fugas</button>
 
     <nav class="barra" id="barra">
       <button id="btn-foto" class="boton-barra" aria-label="Cargar foto de la galería">Foto</button>
@@ -70,7 +80,8 @@
 
         <fieldset>
           <legend>Capas</legend>
-          <p class="nota">Por defecto solo se ven el horizonte, los puntos de fuga y unas pocas líneas de fuga por familia.</p>
+          <p class="nota">Con la imagen congelada: pellizca para alejar y ver dónde se encuentran las líneas, o pulsa «Ver fugas».</p>
+        <p class="nota">Por defecto solo se ven el horizonte, los puntos de fuga y unas pocas líneas de fuga por familia.</p>
           <label class="opcion"><input type="checkbox" id="aj-aristas"> <span>Todas las aristas detectadas (finas; en gris las que no encajan)</span></label>
           <label class="opcion"><input type="checkbox" id="aj-rejilla"> <span>Rejilla de perspectiva (rayos desde cada punto de fuga)</span></label>
           <label class="opcion"><input type="checkbox" id="aj-sensor-horizonte"> <span>Comparar con el horizonte del sensor (línea discontinua)</span></label>
@@ -94,6 +105,13 @@
           <legend>Sensor de inclinación</legend>
           <p>Estado: <span id="estado-sensores"></span></p>
           <button type="button" id="btn-sensores" class="boton">Activar sensores</button>
+        </fieldset>
+
+        <fieldset class="acerca">
+          <legend>Acerca de</legend>
+          <p><strong>Perspectiva</strong><br>Laboratorio de Geometría y Forma<br>Universidad de Navarra</p>
+          <p>© 2026 Carlos Naya y Fernando Alonso, profesores de la Universidad de Navarra. Todos los derechos reservados.</p>
+          <p class="nota">Desarrollada con la asistencia de Claude Opus 5.5 (Anthropic). El diseño docente, las decisiones y la revisión son de los autores.</p>
         </fieldset>
 
         <p class="privacidad">Todo se procesa en tu móvil. Ninguna imagen sale del dispositivo. La app no usa cuentas ni analítica.</p>

@@ -6,7 +6,18 @@
 // reproducir y comparar resultados (necesario para el estudio docente).
 // =============================================================================
 
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
+
+// Autoría y créditos (pantalla de inicio, Ajustes → Acerca de, exportaciones)
+export const CREDITOS = {
+  app: 'Perspectiva',
+  institucion: 'Universidad de Navarra',
+  asignatura: 'Laboratorio de Geometría y Forma',
+  autores: 'Carlos Naya y Fernando Alonso',
+  cargo: 'Profesores de la Universidad de Navarra',
+  anio: 2026,
+  ia: 'Desarrollada con la asistencia de Claude Opus 5.5 (Anthropic)',
+};
 
 export const CONFIG = {
   // --- Imagen de análisis -------------------------------------------------

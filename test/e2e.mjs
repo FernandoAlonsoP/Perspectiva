@@ -78,6 +78,22 @@ await pagina.click('#btn-congelar');
 await pagina.waitForTimeout(2500);
 await paso('3-congelado');
 
+// encuadre "Ver fugas": la foto y sus puntos de fuga en pantalla; se exporta esa vista
+await pagina.click('#btn-vista');
+await pagina.waitForTimeout(400);
+await paso('3b-ver-fugas');
+{
+  const ds = [];
+  const oyente = (d) => ds.push(d);
+  pagina.on('download', oyente);
+  await pagina.click('#btn-exportar');
+  await pagina.waitForTimeout(2000);
+  pagina.off('download', oyente);
+  for (const d of ds) if (d.suggestedFilename().endsWith('.png')) await d.saveAs(path.join(salida, 'e2e-export-vista-fugas.png'));
+}
+await pagina.click('#btn-vista'); // volver a la foto
+await pagina.waitForTimeout(300);
+
 // modo B y tocar la línea más larga de la primera familia
 await pagina.click('#btn-ajustes');
 await pagina.check('input[name="modo"][value="B"]');

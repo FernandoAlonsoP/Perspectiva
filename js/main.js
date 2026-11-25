@@ -36,6 +36,8 @@ const estado = {
   imagen: null,          // lo que se dibuja, analiza y exporta: la fuente girada para que la escena quede derecha
   giro: 0,               // 0/90/180/270: cómo se sostiene el móvil (por gravedad)
   giroImagen: 0,         // giro aplicado al fotograma en vivo actual
+  vista: { zoom: 1, cx: null, cy: null },  // zoom y centro (px de imagen) de la imagen congelada
+  vistaFugas: false,     // ¿encuadre ampliado para ver los puntos de fuga?
   resultado: null,       // lo que se dibuja ahora
   seleccion: null,       // índice de segmento (modo B)
   focalExif: null,
@@ -179,6 +181,7 @@ function congelar() {
   estado.anchoF = c.width;
   estado.altoF = c.height;
   estado.congelado = true;
+  reiniciarVista();
   video.pause();
   actualizarBotones();
   analisisAlto();
@@ -188,6 +191,7 @@ function reanudar() {
   if (estado.origen === 'foto' || !video.srcObject) { empezarCamara(); return; }
   estado.turno++;
   estado.congelado = false;
+  reiniciarVista();
   estado.fuente = video;
   estado.resultado = null;
   estado.seleccion = null;
@@ -223,6 +227,7 @@ async function cargarFoto(archivo) {
     estado.altoF = c.height;
     estado.congelado = true;
     estado.inclinacionCongelada = null;
+    reiniciarVista();
     actualizarBotones();
     await analisisAlto();
   } catch {
@@ -295,9 +300,20 @@ function bucle(t) {
     ctx.translate(-Wl / 2, -Hl / 2);
     estado.lienzoLogico = { Wl, Hl };
 
-    const s = Math.min(Wl / estado.anchoF, Hl / estado.altoF);
-    estado.T = { escala: s, ox: (Wl - estado.anchoF * s) / 2, oy: (Hl - estado.altoF * s) / 2 };
+    // Encuadre: en vivo, la imagen entera; congelada, con zoom y desplazamiento
+    const s0 = Math.min(Wl / estado.anchoF, Hl / estado.altoF);
+    estado.escalaBase = s0;
+    const v = estado.vista;
+    if (!estado.congelado || v.cx == null) { v.zoom = 1; v.cx = estado.anchoF / 2; v.cy = estado.altoF / 2; }
+    const s = s0 * v.zoom;
+    estado.T = { escala: s, ox: Wl / 2 - v.cx * s, oy: Hl / 2 - v.cy * s };
     ctx.drawImage(estado.imagen, estado.T.ox, estado.T.oy, estado.anchoF * s, estado.altoF * s);
+    if (v.zoom < 0.98) {
+      // al alejar: borde fino para distinguir la foto del espacio exterior
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = window.devicePixelRatio || 1;
+      ctx.strokeRect(estado.T.ox, estado.T.oy, estado.anchoF * s, estado.altoF * s);
+    }
 
     // horizonte del sensor: en vivo se recalcula en cada fotograma
     let hs;
@@ -320,6 +336,7 @@ function bucle(t) {
       ancho: Wl,
       alto: Hl,
       margenArriba: 96 * (window.devicePixelRatio || 1),
+      margenAbajo: estado.giro === 0 ? 120 * (window.devicePixelRatio || 1) : 0,
     });
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
@@ -329,6 +346,48 @@ function bucle(t) {
     }
   }
   if (t - ultimoIndicador > 250) { ultimoIndicador = t; actualizarIndicadores(); }
+}
+
+/**
+ * Encuadre "Ver fugas": la foto y sus puntos de fuga (hasta 8 anchos de
+ * distancia) caben en la pantalla, y se ve cómo continúan las líneas.
+ */
+function encuadrarFugas() {
+  const b = marcoFugas();
+  if (!b) return;
+  const { x0, y0, x1, y1 } = b;
+  const { Wl, Hl } = estado.lienzoLogico || { Wl: lienzo.width, Hl: lienzo.height };
+  // dejar sitio a los textos de arriba y a los botones de abajo
+  const dpr = window.devicePixelRatio || 1;
+  const Hutil = Math.max(100, Hl - 250 * dpr);
+  const z = Math.min(1, Math.min(Wl / (x1 - x0), Hutil / (y1 - y0)) / estado.escalaBase);
+  estado.vista.zoom = z;
+  estado.vista.cx = (x0 + x1) / 2;
+  estado.vista.cy = (y0 + y1) / 2 - (40 * dpr) / (estado.escalaBase * z);
+}
+
+/**
+ * Rectángulo (px de imagen) que contiene la foto y sus puntos de fuga cercanos
+ * (hasta CONFIG.distanciaConvergencia anchos), con un margen.
+ */
+function marcoFugas() {
+  const r = estado.resultado;
+  if (!r) return null;
+  let x0 = 0, y0 = 0, x1 = estado.anchoF, y1 = estado.altoF;
+  for (const f of r.familias) {
+    const P = f.punto;
+    if (Math.abs(P[2]) < 1e-12) continue;
+    const x = P[0] / P[2], y = P[1] / P[2];
+    if (Math.hypot(x - estado.anchoF / 2, y - estado.altoF / 2) / estado.anchoF > CONFIG.distanciaConvergencia) continue;
+    x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+  }
+  const m = 0.08 * Math.max(x1 - x0, y1 - y0);
+  return { x0: x0 - m, y0: y0 - m, x1: x1 + m, y1: y1 + m };
+}
+
+function reiniciarVista() {
+  estado.vista = { zoom: 1, cx: null, cy: null };
+  estado.vistaFugas = false;
 }
 
 /** Píxel del lienzo → coordenadas lógicas (deshace el giro de la pantalla). */
@@ -408,6 +467,11 @@ function actualizarIndicadores() {
   }
   pintarMensaje(texto);
   $('mensaje').classList.toggle('tenue', tenue);
+
+  // Botón de encuadre (solo con imagen congelada y analizada)
+  const bv = $('btn-vista');
+  bv.hidden = !(estado.congelado && r && r.familias.length);
+  bv.textContent = estado.vista.zoom < 0.98 ? 'Ajustar foto' : 'Ver fugas';
 
   // Focal (los milisegundos van a Ajustes)
   $('info').textContent = r && r.focalMM ? `Focal ≈ ${formato(r.focalMM, 0)} mm${r.fuenteFocal === 'por defecto' ? ' (supuesta)' : ''}` : '';
@@ -490,9 +554,16 @@ $('btn-exportar').addEventListener('click', async () => {
     modo: estado.ajustes.modo, origen: estado.origen,
     rejilla: estado.ajustes.rejilla, aristas: estado.ajustes.aristas, compararSensor: estado.ajustes.compararSensor,
     incluirOriginal: estado.ajustes.exportarOriginal,
+    // si se ha alejado la vista, se exporta lo que se ve (foto + puntos de fuga)
+    marco: estado.congelado && estado.vista.zoom < 0.98 ? marcoFugas() : null,
     inclinacion: estado.origen === 'camara' ? inc : null,
   });
   if (r === 'descargado') mostrarMensaje('Imagen y registro descargados.');
+});
+
+$('btn-vista').addEventListener('click', () => {
+  if (estado.vista.zoom < 0.98) reiniciarVista();
+  else { encuadrarFugas(); estado.vistaFugas = true; }
 });
 
 $('btn-ajustes').addEventListener('click', () => { sincronizarAjustes(); $('ajustes').showModal(); });
@@ -524,6 +595,9 @@ instalarInteraccion(lienzo, {
   resultado: () => estado.resultado,
   transformacion: () => estado.T,
   aLogico,
+  vista: () => { estado.vistaFugas = estado.vista.zoom < 0.98; return estado.vista; },
+  tamLogico: () => estado.lienzoLogico || { Wl: lienzo.width, Hl: lienzo.height },
+  escalaBase: () => estado.escalaBase || 1,
   editable: () => estado.congelado,
   modo: () => estado.ajustes.modo,
   seleccionar: (i) => { estado.seleccion = i; },
