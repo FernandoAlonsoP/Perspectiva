@@ -6,14 +6,14 @@
 // reproducir y comparar resultados (necesario para el estudio docente).
 // =============================================================================
 
-export const VERSION = '0.5.0';
+export const VERSION = '0.5.1';
 
 // Autoría y créditos (pantalla de inicio, Ajustes → Acerca de, exportaciones)
 export const CREDITOS = {
   app: 'Perspectiva',
   institucion: 'Universidad de Navarra',
-  asignatura: 'Laboratorio de Geometría y Forma',
-  autores: 'Carlos Naya y Fernando Alonso',
+  asignatura: 'Expresión Gráfica Arquitectónica',
+  autores: 'Carlos Naya Villaverde (Doctor Arquitecto) y Fernando M. Alonso Pedrero (Doctor Arquitecto)',
   cargo: 'Profesores de la Universidad de Navarra',
   anio: 2026,
   ia: 'Desarrollada con la asistencia de Claude Opus 5.5 (Anthropic)',
