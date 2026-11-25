@@ -19,10 +19,10 @@ No hay instalación, cuentas, servidor ni analítica. **Todo se procesa en el m�
 | Botón | Qué hace |
 |---|---|
 | **Congelar** | Fija el fotograma y lo analiza con más calidad. Después se pueden **arrastrar los puntos de fuga y el horizonte** para explorar el encaje, **pellizcar para alejar** (o rueda del ratón) y arrastrar para mover la vista. |
-| **Ver fugas** | Con la imagen congelada, encuadra la foto y sus puntos de fuga: se ve cómo las líneas continúan fuera de la foto hasta encontrarse. Al exportar en esta vista, la imagen incluye el espacio exterior. |
+| **Ver fugas** | Con la imagen congelada, encuadra la foto y sus puntos de fuga: se ve cómo las líneas continúan fuera de la foto hasta encontrarse. |
 | **Reanudar** / **Cámara** | Vuelve a la cámara en vivo. |
 | **Foto** | Analiza una foto de la galería. Usa la focal EXIF si la foto la trae. |
-| **Exportar** | Guarda un PNG con la superposición y un JSON con el registro, usando la hoja de compartir del móvil o una descarga. |
+| **Exportar** | Guarda **una imagen con lo que se ve en pantalla** (con el zoom y el encuadre actuales). Opcionalmente, en Ajustes: la foto sin líneas y el registro JSON. |
 | **Ajustes** | Modo A/B, capas (todas las aristas, rejilla), análisis en vivo, focal y sensores. |
 
 ### Qué se dibuja (jerarquía visual)
@@ -64,7 +64,11 @@ https://…/perspectiva/?modo=A
 https://…/perspectiva/?modo=B
 ```
 
-Cada exportación registra el modo activo.
+Cada registro JSON guarda el modo activo. Para el estudio, añadir `registro=1` al enlace hace que cada exportación incluya el JSON sin que el alumno tenga que activarlo:
+
+```
+https://…/Perspectiva/?modo=A&registro=1
+```
 
 ## Desplegar en GitHub Pages
 
@@ -193,6 +197,7 @@ Este desarrollo forma parte de una investigación sobre co-autoría con agentes 
 | 2026-11-25 | v0.3.0 · Autocomprobación geométrica y exportación de la foto original | El profesor no sabía «hasta qué punto está haciendo bien el análisis»; la foto limpia permite reanalizar y afinar | Agente |
 | 2026-11-25 | v0.4.0 · Zoom y desplazamiento en la imagen congelada; botón «Ver fugas»; exportación de la vista ampliada | Petición del profesor tras la 3.ª prueba real: «ver la continuidad de las líneas hasta dónde van las fugas» | Profesor (petición), agente (solución) |
 | 2026-11-25 | v0.4.0 · Marca institucional discreta y créditos (autores, Universidad de Navarra, asistencia de IA) | Petición de los autores; reconocer la asistencia de IA es coherente con la investigación sobre co-autoría | Profesor |
+| 2026-11-25 | v0.4.1 · Exportar = exactamente lo que se ve en pantalla; por defecto un solo archivo (foto original y JSON, opcionales; JSON forzable con `?registro=1`) | El profesor exportó y obtuvo el encuadre automático «foto + fugas» y tres archivos en vez de lo que veía | Profesor (diagnóstico), agente (solución) |
 | 2026-11-25 | Sin cámara simulada en móvil: queda pendiente probar en iPhone y Android reales | No se puede verificar desde el entorno de desarrollo | — |
 
 ## Referencias técnicas

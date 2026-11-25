@@ -91,12 +91,24 @@ await paso('3b-ver-fugas');
   pagina.off('download', oyente);
   for (const d of ds) if (d.suggestedFilename().endsWith('.png')) await d.saveAs(path.join(salida, 'e2e-export-vista-fugas.png'));
 }
+// la imagen exportada debe tener la proporción de la pantalla (lo que se ve es lo que se guarda)
+{
+  const { createRequire: cr } = await import('node:module');
+  const ruta = path.join(salida, 'e2e-export-vista-fugas.png');
+  if (fs.existsSync(ruta)) {
+    const b = fs.readFileSync(ruta);
+    const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
+    const vp = pagina.viewportSize();
+    console.log(`· vista exportada: ${w}×${h} (proporción ${(w / h).toFixed(3)}; pantalla ${(vp.width / vp.height).toFixed(3)})`);
+  }
+}
 await pagina.click('#btn-vista'); // volver a la foto
 await pagina.waitForTimeout(300);
 
 // modo B y tocar la línea más larga de la primera familia
 await pagina.click('#btn-ajustes');
 await pagina.check('input[name="modo"][value="B"]');
+await pagina.check('#aj-registro');
 await pagina.click('#btn-cerrar-ajustes');
 const objetivo = await pagina.evaluate(() => window.__depuracion?.puntoDeLinea?.());
 if (objetivo) await pagina.mouse.click(objetivo[0], objetivo[1]);

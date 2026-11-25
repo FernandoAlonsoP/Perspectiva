@@ -27,7 +27,7 @@ const lienzo = $('lienzo');
 const ctx = lienzo.getContext('2d');
 
 // --- Estado -------------------------------------------------------------------
-const AJUSTES_DEFECTO = { modo: 'A', rejilla: false, aristas: false, compararSensor: false, autoGiro: true, exportarOriginal: true, vivo: true, focalAuto: true, focalMM: CONFIG.focalDefectoMM };
+const AJUSTES_DEFECTO = { modo: 'A', rejilla: false, aristas: false, compararSensor: false, autoGiro: true, exportarOriginal: false, exportarRegistro: false, vivo: true, focalAuto: true, focalMM: CONFIG.focalDefectoMM };
 const estado = {
   origen: null,          // 'camara' | 'foto'
   congelado: false,
@@ -56,9 +56,15 @@ const modoFijado = ['A', 'B'].includes(parametros.get('modo')) ? parametros.get(
 
 try {
   const guardados = JSON.parse(localStorage.getItem('perspectiva.ajustes') || '{}');
+  // v0.4.1: exportar solo la imagen por defecto (antes salían 3 archivos)
+  if (!guardados.versionAjustes) { delete guardados.exportarOriginal; delete guardados.exportarRegistro; }
+  guardados.versionAjustes = 2;
   Object.assign(estado.ajustes, guardados);
 } catch { /* navegación privada: se usan los valores por defecto */ }
 if (modoFijado) estado.ajustes.modo = modoFijado;
+// ?registro=1 en el enlace: cada exportación incluye el JSON (para el estudio)
+const registroForzado = parametros.get('registro') === '1';
+if (registroForzado) estado.ajustes.exportarRegistro = true;
 
 function guardarAjustes() {
   try { localStorage.setItem('perspectiva.ajustes', JSON.stringify(estado.ajustes)); } catch { /* sin almacenamiento */ }
@@ -385,6 +391,20 @@ function marcoFugas() {
   return { x0: x0 - m, y0: y0 - m, x1: x1 + m, y1: y1 + m };
 }
 
+/** Rectángulo visible en pantalla, en píxeles de imagen (lo que se exporta). */
+function marcoVisible() {
+  const { Wl, Hl } = estado.lienzoLogico || { Wl: lienzo.width, Hl: lienzo.height };
+  const T = estado.T;
+  return { x0: -T.ox / T.escala, y0: -T.oy / T.escala, x1: (Wl - T.ox) / T.escala, y1: (Hl - T.oy) / T.escala };
+}
+
+/** ¿Se ha cambiado el encuadre por defecto (zoom o desplazamiento)? */
+function vistaModificada() {
+  const v = estado.vista;
+  return Math.abs(v.zoom - 1) > 0.01 ||
+    Math.abs(v.cx - estado.anchoF / 2) > 0.5 || Math.abs(v.cy - estado.altoF / 2) > 0.5;
+}
+
 function reiniciarVista() {
   estado.vista = { zoom: 1, cx: null, cy: null };
   estado.vistaFugas = false;
@@ -518,6 +538,7 @@ function sincronizarAjustes() {
   $('aj-sensor-horizonte').checked = a.compararSensor;
   $('aj-autogiro').checked = a.autoGiro;
   $('aj-original').checked = a.exportarOriginal;
+  $('aj-registro').checked = a.exportarRegistro;
   $('aj-vivo').checked = a.vivo;
   $('aj-focal-auto').checked = a.focalAuto;
   $('aj-focal').value = a.focalMM;
@@ -555,7 +576,9 @@ $('btn-exportar').addEventListener('click', async () => {
     rejilla: estado.ajustes.rejilla, aristas: estado.ajustes.aristas, compararSensor: estado.ajustes.compararSensor,
     incluirOriginal: estado.ajustes.exportarOriginal,
     // si se ha alejado la vista, se exporta lo que se ve (foto + puntos de fuga)
-    marco: estado.congelado && estado.vista.zoom < 0.98 ? marcoFugas() : null,
+    incluirRegistro: estado.ajustes.exportarRegistro,
+    // se exporta EXACTAMENTE lo que se ve: si se ha movido o acercado/alejado la vista, ese encuadre
+    marco: estado.congelado && vistaModificada() ? marcoVisible() : null,
     inclinacion: estado.origen === 'camara' ? inc : null,
   });
   if (r === 'descargado') mostrarMensaje('Imagen y registro descargados.');
@@ -579,6 +602,7 @@ $('ajustes').addEventListener('change', (e) => {
   a.compararSensor = $('aj-sensor-horizonte').checked;
   a.autoGiro = $('aj-autogiro').checked;
   a.exportarOriginal = $('aj-original').checked;
+  a.exportarRegistro = $('aj-registro').checked;
   a.vivo = $('aj-vivo').checked;
   a.focalAuto = $('aj-focal-auto').checked;
   a.focalMM = Number($('aj-focal').value);

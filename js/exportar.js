@@ -88,6 +88,7 @@ async function construirImagen(fuente, r, contexto) {
   const m = contexto.marco || { x0: 0, y0: 0, x1: r.ancho, y1: r.alto };
   const anchoM = m.x1 - m.x0, altoM = m.y1 - m.y0;
   const s = Math.min(LADO_MAX_EXPORTACION / Math.max(anchoM, altoM), contexto.marco ? 4 : 1);
+  // (con `marco`, el resultado tiene la misma proporción que la pantalla: lo que se ve es lo que se guarda)
   const c = document.createElement('canvas');
   c.width = Math.round(anchoM * s);
   c.height = Math.round(altoM * s);
@@ -112,8 +113,11 @@ async function construirImagen(fuente, r, contexto) {
 export async function exportar(fuente, r, contexto) {
   const nombre = `perspectiva-${marcaTemporal()}`;
   const png = await construirImagen(fuente, r, contexto);
-  const json = new Blob([JSON.stringify(construirRegistro(r, contexto), null, 2)], { type: 'application/json' });
-  const archivos = [new File([png], `${nombre}.png`, { type: 'image/png' }), new File([json], `${nombre}.json`, { type: 'application/json' })];
+  const archivos = [new File([png], `${nombre}.png`, { type: 'image/png' })];
+  if (contexto.incluirRegistro) {
+    const json = new Blob([JSON.stringify(construirRegistro(r, contexto), null, 2)], { type: 'application/json' });
+    archivos.push(new File([json], `${nombre}.json`, { type: 'application/json' }));
+  }
   if (contexto.incluirOriginal) {
     // la foto limpia, sin superposición (para comparar, o para que el profesor la reanalice)
     const c = document.createElement('canvas');
