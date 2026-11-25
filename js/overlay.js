@@ -296,15 +296,31 @@ export function dibujarSuperposicion(ctx, r, T, op = {}) {
     etiqueta(ctx, `Horizonte${extra}`, izq[0] + 8 * g, izq[1] - 16 * g, COLORES.horizonte, g);
   }
 
-  // 4b. Pendientes (escaleras, rampas, cubiertas): su punto de fuga está en la
-  //     vertical del punto de fuga de su planta, sobre el horizonte. Se dibuja esa
-  //     traza (discontinua) y, si no hay ya un PF horizontal allí, un círculo hueco.
+  // 4b. Pendientes (escaleras, rampas, cubiertas). La dirección de la pendiente,
+  //     la de su planta y la vertical están en un mismo plano vertical: sus tres
+  //     puntos de fuga están ALINEADOS. Se dibuja esa recta (discontinua) pasando
+  //     por la fuga de la planta (sobre el horizonte), la de la pendiente y, si
+  //     se conoce, la fuga vertical. Solo con la vista nivelada se ve vertical.
+  const verticalF = r.familias.find((h) => h.tipo === 'vertical');
   for (const f of r.familias) {
     if (f.tipo !== 'inclinada' || !f.puntoPlanta) continue;
     const a = cartesianoLienzo(T, f.puntoPlanta, limite), b = cartesianoLienzo(T, f.punto, limite);
     if (!a || !b) continue;
+    const v = verticalF ? cartesianoLienzo(T, verticalF.punto, limite) : null;
     ctx.setLineDash([7 * g, 6 * g]);
-    lineaConHalo(ctx, a, b, f.color, 1.6 * g, g, 0.9);
+    if (v) {
+      // la recta es la que une la fuga de la planta con la fuga vertical; se
+      // prolonga hasta la altura de la fuga de la pendiente (que debe caer en ella)
+      const u = [v[0] - a[0], v[1] - a[1]], n2 = u[0] * u[0] + u[1] * u[1] || 1;
+      const tb = ((b[0] - a[0]) * u[0] + (b[1] - a[1]) * u[1]) / n2;
+      const t0 = Math.min(0, tb), t1 = Math.max(1, tb);
+      lineaConHalo(ctx, [a[0] + u[0] * t0, a[1] + u[1] * t0], [a[0] + u[0] * t1, a[1] + u[1] * t1], f.color, 1.6 * g, g, 0.9);
+    } else {
+      // fuga vertical en el infinito (vista nivelada): la recta es vertical y se prolonga
+      const l = [a[1] - b[1], b[0] - a[0], a[0] * b[1] - a[1] * b[0]];
+      const p = recortarRecta(l, W, H);
+      lineaConHalo(ctx, p ? p[0] : a, p ? p[1] : b, f.color, 1.6 * g, g, 0.9);
+    }
     ctx.setLineDash([]);
     const yaHay = r.familias.some((h) => h.tipo === 'horizontal' && (() => {
       const q = cartesianoLienzo(T, h.punto, limite); return q && Math.hypot(q[0] - a[0], q[1] - a[1]) < 30 * g;

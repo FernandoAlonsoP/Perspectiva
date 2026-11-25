@@ -30,7 +30,7 @@ No hay instalación, cuentas, servidor ni analítica. **Todo se procesa en el m�
 1. **Horizonte** (amarillo), el calculado a partir de la imagen. El del sensor solo aparece si no hay horizonte en la imagen, o si se activa «Comparar con el horizonte del sensor».
 2. **Puntos de fuga**: un círculo si caen en la pantalla y una flecha con la distancia si caen fuera.
 3. **Líneas de fuga**: como máximo 5 por familia horizontal. Cada una sale del punto de fuga, pasa por una arista real (resaltada) y llega al borde de la imagen. Son **afiladas**: gruesas cerca del observador, finas y transparentes al llegar al punto de fuga. Se prefieren aristas largas y alejadas del punto de fuga, porque las cercanas apenas lo confirman.
-4. **Pendientes** (naranja): escaleras, rampas, cubiertas. Se etiquetan con su ángulo («PF pendiente 34°») y se dibuja la **traza vertical** discontinua que une su punto de fuga con el de su planta sobre el horizonte. En una escalera de ida y vuelta, la misma traza une el PF del tramo que sube y el del que baja.
+4. **Pendientes** (naranja): escaleras, rampas, cubiertas. Se etiquetan con su ángulo («PF pendiente 34°») y se dibuja la recta discontinua que une la fuga de su planta (sobre el horizonte) con la fuga vertical: la fuga de la pendiente cae sobre ella, porque las tres direcciones están en un mismo plano vertical. Solo con la vista nivelada esa recta se ve vertical en pantalla. En una escalera de ida y vuelta, la misma recta contiene la fuga del tramo que sube y la del que baja.
 5. **Verticales**: solo si convergen de forma visible (móvil inclinado). Con el móvil a plomo son paralelas y no se dibujan.
 6. Opcional, en Ajustes → Capas: todas las aristas detectadas, la rejilla y la comparación con el sensor.
 
