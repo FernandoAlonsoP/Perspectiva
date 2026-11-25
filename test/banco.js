@@ -49,7 +49,7 @@ for (const escena of soloGenerar ? [] : ESCENAS) {
         c.width = lienzo.width; c.height = lienzo.height;
         const ctx = c.getContext('2d');
         ctx.drawImage(lienzo, 0, 0);
-        dibujarSuperposicion(ctx, r, { escala: 1, ox: 0, oy: 0 }, { modo: 'B', rejilla: false, sueltos: true, anchoLienzo: c.width, altoLienzo: c.height });
+        dibujarSuperposicion(ctx, r, { escala: 1, ox: 0, oy: 0 }, { modo: 'B', rejilla: false, aristas: false, anchoLienzo: c.width, altoLienzo: c.height });
         imagen = c.toDataURL('image/jpeg', 0.85);
       }
       salida.push({

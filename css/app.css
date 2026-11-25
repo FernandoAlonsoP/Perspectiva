@@ -55,13 +55,14 @@ h1 { font-size: 2.2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
 .pildora.tenue { color: var(--tenue); }
 #privacidad { color: var(--acento); }
 
-.mensaje, .pista {
+.mensaje {
   position: absolute; left: 50%; transform: translateX(-50%); width: min(92%, 520px);
   background: var(--panel); border-radius: 14px; padding: 10px 14px; text-align: center;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); pointer-events: none;
 }
 .mensaje { bottom: calc(104px + var(--seguro-abajo)); font-weight: 600; }
-.pista { bottom: calc(150px + var(--seguro-abajo)); font-size: 0.85rem; color: var(--tenue); }
+
+.mensaje.tenue { font-weight: 400; color: var(--tenue); font-size: 0.9rem; }
 .resumen {
   flex-basis: 100%; background: var(--panel); border-radius: 14px; padding: 8px 12px; font-size: 0.85rem;
   display: grid; gap: 4px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -100,5 +101,4 @@ legend { padding: 0 6px; color: var(--tenue); font-size: 0.85rem; }
 @media (orientation: landscape) and (max-height: 500px) {
   .barra { grid-template-columns: 1fr; width: 120px; left: auto; top: 0; padding: calc(10px + var(--seguro-arriba)) 10px; background: linear-gradient(to left, rgba(0,0,0,0.7), rgba(0,0,0,0)); align-content: center; }
   .mensaje { bottom: 16px; }
-  .pista { display: none; }
 }

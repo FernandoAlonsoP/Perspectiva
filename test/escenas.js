@@ -261,6 +261,26 @@ export const ESCENAS = [
     vegetacion: 0.4,
   },
   {
+    nombre: 'salon',
+    descripcion: 'Interior casi frontal, paredes blancas de poco contraste y pocas líneas en profundidad (como las primeras pruebas reales)',
+    camara: { posicion: [0.6, 1.4, 0.4], guinada: -8, cabeceo: 0 },
+    polys: () => {
+      const PARED = [236, 234, 228], TECHO = [244, 243, 240], MADERA = [140, 90, 60];
+      return [
+        { p: [[-4, 0, 0], [4, 0, 0], [4, 0, 9], [-4, 0, 9]], c: MADERA, k: 0.85 },            // suelo
+        { p: [[-4, 2.7, 0], [4, 2.7, 0], [4, 2.7, 9], [-4, 2.7, 9]], c: TECHO, k: 0.93 },     // techo
+        { p: [[-4, 0, 0], [-4, 2.7, 0], [-4, 2.7, 9], [-4, 0, 9]], c: PARED, k: 0.88 },       // pared izquierda
+        { p: [[4, 0, 0], [4, 2.7, 0], [4, 2.7, 9], [4, 0, 9]], c: PARED, k: 0.86 },            // pared derecha
+        { p: [[-4, 0, 9], [4, 0, 9], [4, 2.7, 9], [-4, 2.7, 9]], c: PARED, k: 0.93 },         // fondo
+        { p: [[-2.5, 0.9, 8.99], [0.5, 0.9, 8.99], [0.5, 2.3, 8.99], [-2.5, 2.3, 8.99]], c: [40, 45, 55], k: 1, capa: 1 }, // ventana
+        { p: [[1.5, 0, 8.99], [2.4, 0, 8.99], [2.4, 2.1, 8.99], [1.5, 2.1, 8.99]], c: [120, 85, 60], k: 1, capa: 1 },     // puerta
+        ...caja(-3.5, 0, 3, -1.5, 0.8, 4.2, [200, 195, 175]),                                  // sofá
+        ...caja(0.5, 0, 5, 2, 0.75, 6.2, [70, 55, 45]),                                        // mesa
+      ];
+    },
+    ruido: 12,
+  },
+  {
     nombre: 'sin-estructura',
     descripcion: 'Vegetación y curvas: debe decir "no se detectan líneas fiables"',
     organica: true,

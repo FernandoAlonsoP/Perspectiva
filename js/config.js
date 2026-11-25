@@ -6,7 +6,7 @@
 // reproducir y comparar resultados (necesario para el estudio docente).
 // =============================================================================
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 
 export const CONFIG = {
   // --- Imagen de análisis -------------------------------------------------
@@ -38,7 +38,13 @@ export const CONFIG = {
   minLongitudFamiliaRel: 0.6,// suma de longitudes mínima, relativa al lado largo
   minRectasDistintas: 3,     // rectas distintas (no trozos de la misma arista)
   fraccionMinimaPrincipal: 0.25, // la 1.ª familia debe sumar ≥ 25 % de la longitud de todos los segmentos
-  semilla: 20261125,         // semilla aleatoria fija: resultados reproducibles
+  semilla: 20261125,
+
+  // Búsqueda guiada de la 3.ª dirección (perpendicular a la vertical y a una horizontal)
+  conoGuiadoGrados: 20,      // solo candidatos a menos de N° de la dirección prevista
+  minSegmentosGuiada: 3,     // al estar guiada, basta con menos evidencia…
+  minLongitudGuiadaRel: 0.25,
+  minRectasGuiada: 2,        // …pero al menos dos rectas distintas         // semilla aleatoria fija: resultados reproducibles
 
   // --- Cámara y focal ----------------------------------------------------------
   focalDefectoMM: 26,        // focal equivalente 35 mm típica de la cámara principal de un móvil
@@ -57,7 +63,8 @@ export const CONFIG = {
   fotogramasParaOlvidar: 3,  // se deja de dibujar si falta N análisis seguidos
 
   // --- Dibujo ---------------------------------------------------------------
-  prolongacionesPorFamilia: 10, // nº de líneas (las más largas) que se prolongan hasta el punto de fuga
+  lineasPorFamilia: 5,       // líneas de fuga dibujadas por familia (las más largas y bien repartidas)
+  distanciaConvergencia: 8,  // anchos de imagen: más lejos, las líneas se ven paralelas (no se dibuja abanico vertical)
   rayosRejilla: 14,          // rayos de la rejilla de perspectiva por punto de fuga
   distanciaInfinito: 25,     // a partir de N anchos de imagen el punto se muestra como "∞"
 };

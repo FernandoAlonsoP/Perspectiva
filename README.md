@@ -2,7 +2,7 @@
 
 Web app para la asignatura *Laboratorio de geometría y forma* (expresión gráfica arquitectónica). El alumno apunta el móvil a un edificio, una calle o un interior y ve sobre la imagen real:
 
-- las **familias de líneas** paralelas, cada una con su color;
+- unas pocas **líneas de fuga** por familia (las más largas y bien repartidas), trazadas desde su punto de fuga hasta el borde de la imagen;
 - sus **puntos de fuga**, o una flecha en el borde con la distancia en anchos de imagen cuando caen fuera;
 - la **línea del horizonte** de la escena y, con sensores, el **horizonte esperado** según la inclinación del móvil;
 - un aviso de si la cámara está inclinada y, por tanto, **las verticales convergen**.
@@ -17,7 +17,15 @@ No hay instalación, cuentas, servidor ni analítica. **Todo se procesa en el m�
 | **Reanudar** / **Cámara** | Vuelve a la cámara en vivo. |
 | **Foto** | Analiza una foto de la galería. Usa la focal EXIF si la foto la trae. |
 | **Exportar** | Guarda un PNG con la superposición y un JSON con el registro, usando la hoja de compartir del móvil o una descarga. |
-| **Ajustes** | Modo A/B, rejilla, líneas sueltas, análisis en vivo, focal y sensores. |
+| **Ajustes** | Modo A/B, capas (todas las aristas, rejilla), análisis en vivo, focal y sensores. |
+
+### Qué se dibuja (jerarquía visual)
+
+1. **Horizonte** (amarillo). Si el sensor coincide, se indica con «✓ sensor»; si discrepa, el del sensor aparece aparte, en discontinuo.
+2. **Puntos de fuga**: un círculo si caen en la pantalla y una flecha con la distancia si caen fuera.
+3. **Líneas de fuga**: como máximo 5 por familia horizontal. Cada una sale del punto de fuga, pasa por una arista real (resaltada) y llega al borde de la imagen.
+4. **Verticales**: solo si convergen de forma visible (móvil inclinado). Con el móvil a plomo son paralelas y no se dibujan.
+5. Opcional, en Ajustes → Capas: todas las aristas detectadas y la rejilla.
 
 ### Modos (las dos condiciones del estudio)
 
@@ -60,11 +68,12 @@ python3 -m http.server 8000     # y abrir http://localhost:8000
 ```bash
 node test/ejecutar.mjs   # banco de escenas sintéticas con geometría conocida → error en grados
 node test/e2e.mjs        # recorre la app completa con una cámara falsa → capturas en test/salida/
+node test/e2e.mjs salon vertical   # lo mismo con otra escena y en vertical
 ```
 
-### Resultado del banco (v0.1.0)
+### Resultado del banco (v0.2.0)
 
-Hay 9 escenas sintéticas: cubo en 1 punto; cubo en 2 puntos a 26 mm y a 16 mm; pasillo; calle; fachada vista desde abajo; calle con teleobjetivo de 50 mm; edificio con vegetación delante; y vegetación sin arquitectura. Cada una se analiza en calidad vivo y alta, con y sin sensor: **34/34 superadas**.
+Hay 10 escenas sintéticas: cubo en 1 punto; cubo en 2 puntos a 26 mm y a 16 mm; pasillo; calle; fachada vista desde abajo; calle con teleobjetivo de 50 mm; edificio con vegetación delante; salón casi frontal de poco contraste; y vegetación sin arquitectura. Cada una se analiza en calidad vivo y alta, con y sin sensor: **38/38 superadas**.
 
 - Criterio: al menos 2 direcciones con error < 2° y horizonte con error < 2°.
 - Errores típicos: **0,02°–0,6°**.
@@ -86,7 +95,8 @@ cámara/foto → copia reducida en grises → [Web Worker]
 
 1. **Segmentos.** Se calcula en cada píxel hacia dónde cambia la luz (gradiente). Los píxeles vecinos con la misma orientación se agrupan, y si el grupo forma un rectángulo largo, estrecho y denso es un segmento. Es una versión simplificada de LSD (von Gioi et al., 2010).
 2. **Puntos de fuga.** Se cortan dos segmentos al azar y se cuenta cuántos otros "apuntan" a ese corte, con un margen de 2°. Tras repetirlo cientos de veces gana el más votado (RANSAC; Fischler y Bolles, 1981). Se retiran sus segmentos y se busca el siguiente punto, hasta tres. El voto se mide en grados, no en píxeles, para que funcione con puntos lejanos o en el infinito (rectas paralelas).
-3. **Estructura.** Si dos puntos de fuga corresponden a direcciones perpendiculares (mundo Manhattan; Coughlan y Yuille, 1999), su posición da la focal: `f² = −(v₁ − c)·(v₂ − c)`. Con la focal, cada punto es una dirección 3D y se puede decir cuál es vertical, cuáles horizontales y dónde cae el horizonte.
+3. **Tercera dirección guiada.** En arquitectura ortogonal, si se conocen la vertical (por las líneas o por el sensor) y una horizontal, la otra horizontal es perpendicular a ambas. Esa familia (en un interior, la de profundidad) suele tener pocas líneas. Se busca solo en un cono de 20° alrededor de la dirección prevista, y por eso basta con menos evidencia (3 líneas, 2 rectas distintas) sin riesgo de inventar.
+4. **Estructura.** Si dos puntos de fuga corresponden a direcciones perpendiculares (mundo Manhattan; Coughlan y Yuille, 1999), su posición da la focal: `f² = −(v₁ − c)·(v₂ − c)`. Con la focal, cada punto es una dirección 3D y se puede decir cuál es vertical, cuáles horizontales y dónde cae el horizonte.
 
 Todos los umbrales están en **`js/config.js`**, comentados. Cada JSON exportado guarda una copia de ellos.
 
@@ -140,6 +150,10 @@ Este desarrollo forma parte de una investigación sobre co-autoría con agentes 
 | 2026-11-25 | Análisis vivo a 640 px (no 480) | A 480 px fallaban 4/34 pruebas (familias débiles); a 640 px, 34/34, con el doble de coste. Revisar al medir en móviles | Agente, tras medirlo en el banco |
 | 2026-11-25 | Imagen completa sin recortar (bandas negras) en lugar de pantalla completa recortada | Los puntos de fuga suelen caer fuera de la foto; recortar esconde aristas útiles | Agente |
 | 2026-11-25 | Focal EXIF para fotos de galería | Es la focal real; mejora el horizonte cuando hay un solo punto de fuga | Agente |
+| 2026-11-25 | v0.2.0 · Jerarquía visual: por defecto solo horizonte, puntos de fuga y ≤ 5 líneas de fuga por familia, del punto de fuga al borde de la imagen; aristas y rejilla pasan a capas opcionales | Primera prueba real en iPhone: «no se ven las líneas de fuga, que es lo más importante; son muchas líneas y confunde» | Profesor (diagnóstico), agente (diseño) |
+| 2026-11-25 | v0.2.0 · No dibujar verticales paralelas | Con el móvil a plomo no convergen; en la prueba real llenaban la imagen de rayas discontinuas | Agente, a partir de las capturas |
+| 2026-11-25 | v0.2.0 · Búsqueda guiada de la tercera dirección | En la prueba real (interior frontal) no aparecía la familia de profundidad, la más didáctica. Sin las fotos originales no se ha podido confirmar que esta sea la causa | Agente |
+| 2026-11-25 | v0.2.0 · Un solo horizonte si escena y sensor coinciden; un solo mensaje abajo | Dos líneas y dos etiquetas casi superpuestas; mensajes solapados | Agente, a partir de las capturas |
 | 2026-11-25 | Sin cámara simulada en móvil: queda pendiente probar en iPhone y Android reales | No se puede verificar desde el entorno de desarrollo | — |
 
 ## Referencias técnicas

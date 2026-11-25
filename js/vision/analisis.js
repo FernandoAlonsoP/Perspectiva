@@ -8,9 +8,9 @@
 
 import { CONFIG } from '../config.js';
 import { detectarSegmentos } from './segmentos.js';
-import { prepararSegmentos, detectarFamilias } from './fuga.js';
+import { prepararSegmentos, detectarFamilias, buscarFamiliaGuiada } from './fuga.js';
 import { estimarFocal, clasificar, calcularHorizonte, horizonteSensor, imagenAEsfera } from './manhattan.js';
-import { aImagen, aleatorio, mmAPx, pxAMm, rectaDesdeNormal, errorAngular } from './geometria.js';
+import { aImagen, aleatorio, mmAPx, pxAMm, rectaDesdeNormal, errorAngular, cruz, normalizar } from './geometria.js';
 
 /**
  * @param gris      Float32Array con la imagen reducida en grises (0–255)
@@ -43,19 +43,39 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
 
   // 3. Focal: fija (EXIF/usuario), estimada de la escena, o por defecto
   let fuenteFocal = focalFija ? op.fuenteFocal || 'usuario' : 'por defecto';
-  if (!focalFija && familias.length >= 2) {
+  const reestimarFocal = () => {
+    if (focalFija || familias.length < 2) return;
     const est = estimarFocal(familias, cam, ancho, alto, cfg);
-    if (est) {
-      // los puntos de fuga en la imagen no cambian; sus direcciones 3D sí
-      const puntos = familias.map((f) => aImagen(f.v, cam));
-      cam = { ...cam, f: est.f };
-      familias.forEach((f, i) => { f.v = imagenAEsfera(puntos[i], cam); });
-      fuenteFocal = 'escena';
+    if (!est) return;
+    // los puntos de fuga en la imagen no cambian; sus direcciones 3D sí
+    const puntos = familias.map((f) => aImagen(f.v, cam));
+    cam = { ...cam, f: est.f };
+    familias.forEach((f, i) => { f.v = imagenAEsfera(puntos[i], cam); });
+    fuenteFocal = 'escena';
+  };
+  reestimarFocal();
+  clasificar(familias, arriba, cfg);
+
+  // 4. Tercera dirección guiada: si hay vertical (o sensor) y UNA horizontal,
+  //    la otra horizontal es perpendicular a ambas. Se busca en esa zona.
+  const hor = familias.filter((f) => f.tipo === 'horizontal');
+  const ver = familias.find((f) => f.tipo === 'vertical');
+  const vertical = ver ? ver.v : arriba;
+  if (hor.length === 1 && vertical && familias.length < cfg.maxFamilias) {
+    const prevista = normalizar(cruz(hor[0].v, vertical));
+    const usados = new Set(familias.flatMap((f) => f.inliers));
+    const restantes = datos.filter((s) => !usados.has(s.i));
+    const guiada = buscarFamiliaGuiada(restantes, prevista, cam, cfg, {
+      iteraciones: op.calidad === 'alto' ? cfg.iteracionesAlto : cfg.iteracionesVivo,
+      lado,
+      rng: aleatorio(cfg.semilla + 1),
+    });
+    if (guiada) {
+      familias.push(guiada);
+      reestimarFocal();
+      clasificar(familias, arriba, cfg);
     }
   }
-
-  // 4. Clasificación y horizonte
-  clasificar(familias, arriba, cfg);
   const hz = calcularHorizonte(familias, arriba);
 
   // 5. Residuales por segmento y resultado en píxeles de la imagen original
@@ -75,6 +95,7 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
       v: f.v,
       punto: [V[0] * escala, V[1] * escala, V[2]],
       tipo: f.tipo,
+      guiada: !!f.guiada,
       nSegmentos: f.inliers.length,
       longitudRel: f.longitud / lado,
       rectasDistintas: f.rectasDistintas,
@@ -89,7 +110,11 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
   const fiable = familias.length > 0;
   let mensaje = '';
   if (!fiable) mensaje = 'No se detectan líneas fiables. Encuadra arquitectura con aristas rectas.';
-  else if (familias.length === 1) mensaje = 'Solo una familia de líneas. Gira un poco para ver otra cara.';
+  else if (familias.length === 1) {
+    mensaje = familias[0].tipo === 'vertical'
+      ? 'Solo veo verticales. Encuadra también suelo, techo o ventanas.'
+      : 'Solo una familia de líneas. Gira un poco para ver otra cara.';
+  }
 
   return {
     ancho: ancho * escala,

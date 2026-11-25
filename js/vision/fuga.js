@@ -138,3 +138,54 @@ export function residuales(datosFamilia, V) {
 }
 
 export { punto3 };
+
+/**
+ * Búsqueda GUIADA de una familia cuya dirección ya se intuye.
+ *
+ * En arquitectura ortogonal, si conocemos la vertical y una dirección
+ * horizontal, la tercera es perpendicular a ambas (producto vectorial). Esa
+ * familia —típicamente la de "profundidad" en un interior— suele tener pocas
+ * líneas y no supera los criterios de la búsqueda libre. Aquí solo se aceptan
+ * candidatos dentro de un cono alrededor de la dirección prevista, y por eso
+ * se pueden exigir menos líneas sin riesgo de inventar.
+ */
+export function buscarFamiliaGuiada(restantes, vPrevista, cam, cfg, opciones) {
+  const { iteraciones, lado, rng } = opciones;
+  if (restantes.length < cfg.minSegmentosGuiada) return null;
+  const umbral = cfg.umbralInlier;
+  const puntuar = (v) => {
+    const V = aImagen(v, cam);
+    let p = 0;
+    for (const s of restantes) {
+      const e = errorAngular(s.mx, s.my, s.dx, s.dy, V);
+      if (e < umbral) p += s.L * (1 - (e / umbral) ** 2);
+    }
+    return p;
+  };
+  let mejor = vPrevista, mejorP = puntuar(vPrevista);
+  for (let it = 0; it < iteraciones; it++) {
+    const a = restantes[Math.floor(rng() * restantes.length)];
+    const b = restantes[Math.floor(rng() * restantes.length)];
+    if (a === b) continue;
+    const v = cruz(a.normal, b.normal);
+    if (Math.hypot(v[0], v[1], v[2]) < 1e-9) continue;
+    const vn = normalizar(v);
+    if (anguloDirecciones(vn, vPrevista) > cfg.conoGuiadoGrados) continue;
+    const p = puntuar(vn);
+    if (p > mejorP) { mejorP = p; mejor = vn; }
+  }
+  let v = mejor, inliers = [];
+  for (let vuelta = 0; vuelta < 3; vuelta++) {
+    inliers = restantes.filter((s) => errorSegmento(s, v, cam) < umbral);
+    if (inliers.length < 2) break;
+    const vr = refinar(inliers, cam);
+    if (anguloDirecciones(vr, vPrevista) > cfg.conoGuiadoGrados) break;
+    v = vr;
+  }
+  inliers = restantes.filter((s) => errorSegmento(s, v, cam) < umbral);
+  const longitud = inliers.reduce((t, s) => t + s.L, 0);
+  const distintas = rectasDistintas(inliers);
+  if (inliers.length < cfg.minSegmentosGuiada || longitud < cfg.minLongitudGuiadaRel * lado || distintas < cfg.minRectasGuiada) return null;
+  if (v[2] < 0 || (v[2] === 0 && v[1] < 0)) v = [-v[0], -v[1], -v[2]];
+  return { v, inliers: inliers.map((s) => s.i), longitud, rectasDistintas: distintas, fraccion: 0, guiada: true };
+}

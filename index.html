@@ -38,14 +38,13 @@
     <canvas id="lienzo"></canvas>
 
     <header class="superior">
-      <div class="pildora" id="privacidad">Procesado en tu móvil · sin subir imágenes</div>
+      <div class="pildora" id="privacidad">🔒 Todo en tu móvil</div>
       <div class="pildora" id="sensor"></div>
       <div class="pildora tenue" id="info"></div>
       <div id="resumen" class="resumen" hidden></div>
     </header>
 
     <div id="mensaje" class="mensaje" hidden></div>
-    <div id="pista-edicion" class="pista" hidden>Arrastra un punto de fuga o el horizonte para explorar el encaje.</div>
 
     <nav class="barra">
       <button id="btn-foto" class="boton-barra" aria-label="Cargar foto de la galería">Foto</button>
@@ -68,9 +67,10 @@
         <p id="modo-fijado" class="nota" hidden></p>
 
         <fieldset>
-          <legend>Dibujo</legend>
+          <legend>Capas</legend>
+          <p class="nota">Por defecto solo se ven el horizonte, los puntos de fuga y unas pocas líneas de fuga por familia.</p>
+          <label class="opcion"><input type="checkbox" id="aj-aristas"> <span>Todas las aristas detectadas (finas; en gris las que no encajan)</span></label>
           <label class="opcion"><input type="checkbox" id="aj-rejilla"> <span>Rejilla de perspectiva (rayos desde cada punto de fuga)</span></label>
-          <label class="opcion"><input type="checkbox" id="aj-sueltos"> <span>Mostrar líneas detectadas que no encajan en ninguna familia</span></label>
           <label class="opcion"><input type="checkbox" id="aj-vivo"> <span>Analizar en vivo (desactívalo si el móvil se calienta o va lento)</span></label>
         </fieldset>
 
@@ -88,6 +88,7 @@
         </fieldset>
 
         <p class="privacidad">Todo se procesa en tu móvil. Ninguna imagen sale del dispositivo. La app no usa cuentas ni analítica.</p>
+        <p class="nota" id="tecnico"></p>
         <p class="nota" id="version"></p>
         <button type="button" id="btn-cerrar-ajustes" class="boton principal">Cerrar</button>
       </form>

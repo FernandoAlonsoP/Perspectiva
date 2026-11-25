@@ -25,15 +25,18 @@ const base = `http://localhost:${puerto}`;
 let navegador = await chromium.launch();
 let pagina = await navegador.newPage();
 await pagina.goto(`${base}/test/banco.html?solo-generar`);
-const jpgs = await pagina.evaluate(async () => {
+// argumentos opcionales: escena del vídeo falso y orientación (p. ej. `node test/e2e.mjs salon vertical`)
+const escenaVideo = process.argv[2] || 'calle';
+const vertical = process.argv[3] === 'vertical';
+const jpgs = await pagina.evaluate(async ({ escenaVideo, vertical }) => {
   const { ESCENAS, generar } = await import('./escenas.js');
   const out = {};
-  for (const n of ['calle', 'fachada']) {
-    const { lienzo } = generar(ESCENAS.find((e) => e.nombre === n));
-    out[n] = lienzo.toDataURL('image/jpeg', 0.9).split(',')[1];
+  for (const [clave, n] of [['calle', escenaVideo], ['fachada', 'fachada']]) {
+    const { lienzo } = vertical && clave === 'calle' ? generar(ESCENAS.find((e) => e.nombre === n), 960, 1280) : generar(ESCENAS.find((e) => e.nombre === n));
+    out[clave] = lienzo.toDataURL('image/jpeg', 0.9).split(',')[1];
   }
   return out;
-});
+}, { escenaVideo, vertical });
 await navegador.close();
 const rutaCalle = path.join(salida, 'calle.raw.jpg');
 const rutaFachada = path.join(salida, 'fachada.raw.jpg');

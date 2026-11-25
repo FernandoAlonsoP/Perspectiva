@@ -4,7 +4,7 @@
 // Al publicar una versión nueva, cambiar CACHE para que los móviles la descarguen.
 // =============================================================================
 
-const CACHE = 'perspectiva-0.1.0';
+const CACHE = 'perspectiva-0.2.0';
 const ARCHIVOS = [
   './', './index.html', './css/app.css', './manifest.webmanifest', './icono.svg', './icono-180.png', './icono-512.png',
   './js/main.js', './js/config.js', './js/camara.js', './js/sensores.js', './js/overlay.js', './js/interaccion.js',

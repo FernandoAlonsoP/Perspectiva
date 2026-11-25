@@ -81,12 +81,79 @@ function textoDistancia(r, P) {
   return d > CONFIG.distanciaInfinito ? '∞' : `${d.toFixed(1).replace('.', ',')} anchos`;
 }
 
+// --- selección de líneas representativas ------------------------------------
+/**
+ * De todas las líneas de una familia, elige pocas (CONFIG.lineasPorFamilia):
+ * las más largas, pero bien repartidas por la imagen (no cinco líneas casi
+ * iguales en la misma ventana). Así el abanico de líneas de fuga se lee de un vistazo.
+ */
+export function representativas(r, k, n = CONFIG.lineasPorFamilia) {
+  const P = r.familias[k].punto;
+  const cx = r.ancho / 2, cy = r.alto / 2;
+  const cand = [];
+  const total = r.segmentos.length / 4;
+  for (let i = 0; i < total; i++) {
+    if (r.familiaSeg[i] !== k) continue;
+    const x1 = r.segmentos[i * 4], y1 = r.segmentos[i * 4 + 1], x2 = r.segmentos[i * 4 + 2], y2 = r.segmentos[i * 4 + 3];
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    // recta que une el punto de fuga con el centro del segmento: su distancia al
+    // centro de la imagen indica "dónde" está la línea dentro del abanico
+    const l = [P[1] - my * P[2], mx * P[2] - P[0], P[0] * my - P[1] * mx];
+    const d = (l[0] * cx + l[1] * cy + l[2]) / (Math.hypot(l[0], l[1]) || 1);
+    cand.push({ i, L: Math.hypot(x2 - x1, y2 - y1), d });
+  }
+  if (!cand.length) return [];
+  const ds = cand.map((c) => c.d);
+  const separacion = Math.max((Math.max(...ds) - Math.min(...ds)) / (n * 1.3), 0.025 * r.ancho);
+  cand.sort((a, b) => b.L - a.L);
+  const elegidas = [];
+  for (const c of cand) {
+    if (elegidas.length >= n) break;
+    if (elegidas.every((e) => Math.abs(e.d - c.d) >= separacion)) elegidas.push(c);
+  }
+  return elegidas.map((e) => e.i);
+}
+
+/** Punto donde un rayo (origen o, dirección u) sale del rectángulo m = [x0, y0, x1, y1]. */
+function salidaRayo(o, u, m) {
+  let t = Infinity;
+  if (u[0] > 1e-9) t = Math.min(t, (m[2] - o[0]) / u[0]);
+  if (u[0] < -1e-9) t = Math.min(t, (m[0] - o[0]) / u[0]);
+  if (u[1] > 1e-9) t = Math.min(t, (m[3] - o[1]) / u[1]);
+  if (u[1] < -1e-9) t = Math.min(t, (m[1] - o[1]) / u[1]);
+  return t;
+}
+
+/** Línea con un halo oscuro debajo: se lee sobre paredes blancas y sobre fondos oscuros. */
+function lineaConHalo(ctx, a, b, color, ancho, g, alfa = 1) {
+  ctx.globalAlpha = alfa * 0.55;
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = ancho + 2.5 * g;
+  linea(ctx, a, b);
+  ctx.globalAlpha = alfa;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = ancho;
+  linea(ctx, a, b);
+  ctx.globalAlpha = 1;
+}
+
+/** Distancia (en anchos de imagen) del punto de fuga al centro; Infinity si está en el infinito. */
+export function distanciaAnchos(r, P) {
+  if (Math.abs(P[2]) < 1e-12) return Infinity;
+  return Math.hypot(P[0] / P[2] - r.ancho / 2, P[1] / P[2] - r.alto / 2) / r.ancho;
+}
+
 // --- dibujo principal ----------------------------------------------------------
 /**
+ * Jerarquía visual (de lo más importante a lo menos):
+ *   1. horizonte  2. puntos de fuga  3. unas pocas líneas de fuga por familia
+ *   4. (opcional) todas las aristas detectadas  5. (opcional) rejilla
+ * Las verticales solo se dibujan si convergen de forma visible.
+ *
  * @param ctx  contexto 2D
  * @param r    resultado del análisis (o del seguimiento / edición manual)
  * @param T    transformación imagen → lienzo
- * @param op   { modo: 'A'|'B', rejilla, sueltos, seleccion, g (grosor: 1 = 1 px CSS), horizonteSensor }
+ * @param op   { modo: 'A'|'B', rejilla, aristas, seleccion, g (grosor: 1 = 1 px CSS), horizonteSensor }
  */
 export function dibujarSuperposicion(ctx, r, T, op = {}) {
   const W = ctx.canvas.width, H = ctx.canvas.height;
@@ -96,84 +163,87 @@ export function dibujarSuperposicion(ctx, r, T, op = {}) {
   ctx.save();
   ctx.lineCap = 'round';
 
-  // rectángulo de la imagen en el lienzo (las rectas paralelas no salen de él)
+  // rectángulo de la imagen en el lienzo (las líneas no salen de él)
   const marco = [Math.max(0, T.ox), Math.max(0, T.oy), Math.min(W, T.ox + T.escala * (r.ancho || W)), Math.min(H, T.oy + T.escala * (r.alto || H))];
   const seg = (i) => [aLienzo(T, r.segmentos[i * 4], r.segmentos[i * 4 + 1]), aLienzo(T, r.segmentos[i * 4 + 2], r.segmentos[i * 4 + 3])];
   const nSeg = r.segmentos.length / 4;
 
-  // 1. Segmentos que no pertenecen a ninguna familia
-  if (op.sueltos) {
-    ctx.strokeStyle = COLORES.suelto;
+  // 1. (Opcional) todas las aristas detectadas, finas
+  if (op.aristas) {
     ctx.lineWidth = 1.5 * g;
-    for (let i = 0; i < nSeg; i++) if (r.familiaSeg[i] < 0) { const [a, b] = seg(i); linea(ctx, a, b); }
+    for (let i = 0; i < nSeg; i++) {
+      const k = r.familiaSeg[i];
+      ctx.strokeStyle = k < 0 ? COLORES.suelto : r.familias[k].color;
+      ctx.globalAlpha = k < 0 ? 1 : 0.8;
+      const [a, b] = seg(i);
+      linea(ctx, a, b);
+    }
+    ctx.globalAlpha = 1;
   }
 
-  // 2. Rejilla de perspectiva (rayos desde cada punto de fuga)
+  // 2. (Opcional) rejilla de perspectiva
   if (op.rejilla) {
     for (const f of r.familias) dibujarRayos(ctx, T, f, W, H, g, limite);
   }
 
-  // 3. Prolongación de las líneas más largas hasta su punto de fuga
+  // 3. Líneas de fuga: pocas, largas, desde el punto de fuga hasta el borde de la imagen
   r.familias.forEach((f, k) => {
-    const indices = [];
-    for (let i = 0; i < nSeg; i++) if (r.familiaSeg[i] === k) indices.push(i);
-    indices.sort((a, b) => longitud(r, b) - longitud(r, a));
-    const vp = cartesianoLienzo(T, f.punto, limite);
-    ctx.strokeStyle = f.color;
-    ctx.globalAlpha = 0.55;
-    ctx.lineWidth = 1 * g;
-    ctx.setLineDash([6 * g, 5 * g]);
-    for (const i of indices.slice(0, CONFIG.prolongacionesPorFamilia)) {
+    const dist = distanciaAnchos(r, f.punto);
+    // verticales paralelas (cámara a plomo): no aportan nada y llenan la imagen de rayas
+    if (f.tipo === 'vertical' && dist > CONFIG.distanciaConvergencia) return;
+    const n = f.tipo === 'vertical' ? 3 : CONFIG.lineasPorFamilia;
+    const vp = dist < CONFIG.distanciaInfinito ? cartesianoLienzo(T, f.punto, limite) : null;
+    for (const i of representativas(r, k, n)) {
       const [a, b] = seg(i);
       if (vp) {
         const lejos = Math.hypot(a[0] - vp[0], a[1] - vp[1]) > Math.hypot(b[0] - vp[0], b[1] - vp[1]) ? a : b;
-        linea(ctx, lejos, vp);
+        const dl = Math.hypot(lejos[0] - vp[0], lejos[1] - vp[1]) || 1;
+        const u = [(lejos[0] - vp[0]) / dl, (lejos[1] - vp[1]) / dl];
+        // el rayo sale del punto de fuga y llega hasta el borde de la imagen
+        let t = salidaRayo(vp, u, marco);
+        if (!isFinite(t) || t < dl) t = dl;
+        lineaConHalo(ctx, vp, [vp[0] + u[0] * t, vp[1] + u[1] * t], f.color, 2 * g, g);
       } else {
+        // punto en el infinito: líneas paralelas, más discretas
         const l = [a[1] - b[1], b[0] - a[0], a[0] * b[1] - a[1] * b[0]];
         const p = recortarRecta(l, marco[2], marco[3], marco[0], marco[1]);
-        if (p) linea(ctx, p[0], p[1]);
+        if (p) lineaConHalo(ctx, p[0], p[1], f.color, 1.5 * g, g, 0.75);
       }
+      // la arista real que sostiene la línea, resaltada
+      lineaConHalo(ctx, a, b, f.color, 4 * g, g);
     }
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
   });
 
-  // 4. Segmentos de cada familia
-  ctx.lineWidth = 3 * g;
-  for (let i = 0; i < nSeg; i++) {
-    const k = r.familiaSeg[i];
-    if (k < 0) continue;
-    ctx.strokeStyle = r.familias[k].color;
-    const [a, b] = seg(i);
-    linea(ctx, a, b);
-  }
-
-  // 5. Horizonte del sensor (discontinuo) y de la escena (continuo)
+  // 4. Horizonte: uno solo si escena y sensor coinciden; los dos si discrepan
   const hs = op.horizonteSensor !== undefined ? op.horizonteSensor : r.horizonteSensor;
-  if (hs) {
-    const p = recortarRecta(rectaLienzo(T, hs), W, H);
-    if (p) {
-      ctx.strokeStyle = COLORES.sensor; ctx.globalAlpha = 0.8; ctx.lineWidth = 1.5 * g;
-      ctx.setLineDash([10 * g, 8 * g]); linea(ctx, p[0], p[1]); ctx.setLineDash([]); ctx.globalAlpha = 1;
-      const izq = p[0][0] < p[1][0] ? p[0] : p[1];
-      etiqueta(ctx, 'Horizonte según el sensor', izq[0] + 8 * g, izq[1] + 16 * g, COLORES.sensor, g);
-    }
+  const pEscena = r.horizonte ? recortarRecta(rectaLienzo(T, r.horizonte.linea), W, H) : null;
+  const pSensor = hs ? recortarRecta(rectaLienzo(T, hs), W, H) : null;
+  let coinciden = false;
+  if (pEscena && pSensor) {
+    const yEn = (l, x) => { const m = rectaLienzo(T, l); return Math.abs(m[1]) < 1e-12 ? Infinity : -(m[0] * x + m[2]) / m[1]; };
+    coinciden = [marco[0], marco[2]].every((x) => Math.abs(yEn(r.horizonte.linea, x) - yEn(hs, x)) < 14 * g);
   }
-  if (r.horizonte) {
-    const p = recortarRecta(rectaLienzo(T, r.horizonte.linea), W, H);
-    if (p) {
-      ctx.strokeStyle = COLORES.horizonte; ctx.lineWidth = 2.5 * g;
-      linea(ctx, p[0], p[1]);
-      const izq = p[0][0] < p[1][0] ? p[0] : p[1];
-      const extra = r.horizonte.manual ? ' (ajustado a mano)' : r.horizonte.fuente.startsWith('estimado') ? ' (estimado)' : '';
-      etiqueta(ctx, `Horizonte${extra}`, izq[0] + 8 * g, izq[1] - 16 * g, COLORES.horizonte, g);
-    }
+  if (pSensor && !coinciden) {
+    ctx.setLineDash([10 * g, 8 * g]);
+    lineaConHalo(ctx, pSensor[0], pSensor[1], COLORES.sensor, 1.5 * g, g, 0.85);
+    ctx.setLineDash([]);
+    const izq = pSensor[0][0] < pSensor[1][0] ? pSensor[0] : pSensor[1];
+    etiqueta(ctx, pEscena ? 'Horizonte según el sensor' : 'Horizonte (sensor)', izq[0] + 8 * g, izq[1] + 16 * g, COLORES.sensor, g);
+  }
+  if (pEscena) {
+    lineaConHalo(ctx, pEscena[0], pEscena[1], COLORES.horizonte, 2.5 * g, g);
+    const izq = pEscena[0][0] < pEscena[1][0] ? pEscena[0] : pEscena[1];
+    const extra = r.horizonte.manual ? ' (ajustado a mano)' : coinciden ? ' ✓ sensor' : r.horizonte.fuente.startsWith('estimado') ? ' (estimado)' : '';
+    etiqueta(ctx, `Horizonte${extra}`, izq[0] + 8 * g, izq[1] - 16 * g, COLORES.horizonte, g);
   }
 
-  // 6. Puntos de fuga: marcador si se ven, flecha en el borde si no
-  for (const f of r.familias) dibujarPuntoFuga(ctx, r, T, f, W, H, g, limite);
+  // 5. Puntos de fuga: marcador si se ven, flecha en el borde si no
+  for (const f of r.familias) {
+    if (f.tipo === 'vertical' && distanciaAnchos(r, f.punto) > CONFIG.distanciaConvergencia) { f._pantalla = null; f._flecha = null; continue; }
+    dibujarPuntoFuga(ctx, r, T, f, W, H, g, limite);
+  }
 
-  // 7. Modo B: desviación de la línea seleccionada
+  // 6. Modo B: desviación de la línea seleccionada
   if (op.modo === 'B' && op.seleccion != null && op.seleccion < nSeg && r.familiaSeg[op.seleccion] >= 0) {
     const i = op.seleccion, f = r.familias[r.familiaSeg[i]];
     const [a, b] = seg(i);

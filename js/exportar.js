@@ -49,6 +49,7 @@ export function construirRegistro(r, contexto) {
         segmentos: f.nSegmentos,
         residualMedioGrados: +f.residualMedio.toFixed(3),
         ajustadoAMano: !!f.manual,
+        busquedaGuiada: !!f.guiada,
       };
     }),
     horizonte: r.horizonte
@@ -68,7 +69,7 @@ async function construirImagen(fuente, r, contexto) {
   const ctx = c.getContext('2d');
   ctx.drawImage(fuente, 0, 0, c.width, c.height);
   dibujarSuperposicion(ctx, r, { escala: s, ox: 0, oy: 0 }, {
-    modo: contexto.modo, rejilla: contexto.rejilla, sueltos: contexto.sueltos,
+    modo: contexto.modo, rejilla: contexto.rejilla, aristas: contexto.aristas,
     g: Math.max(1.5, Math.min(c.width, c.height) / 600), seleccion: null,
   });
   return new Promise((ok) => c.toBlob(ok, 'image/png'));

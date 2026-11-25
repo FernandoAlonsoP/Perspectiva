@@ -27,7 +27,7 @@ const lienzo = $('lienzo');
 const ctx = lienzo.getContext('2d');
 
 // --- Estado -------------------------------------------------------------------
-const AJUSTES_DEFECTO = { modo: 'A', rejilla: false, sueltos: false, vivo: true, focalAuto: true, focalMM: CONFIG.focalDefectoMM };
+const AJUSTES_DEFECTO = { modo: 'A', rejilla: false, aristas: false, vivo: true, focalAuto: true, focalMM: CONFIG.focalDefectoMM };
 const estado = {
   origen: null,          // 'camara' | 'foto'
   congelado: false,
@@ -125,6 +125,7 @@ async function analisisAlto() {
   try {
     const r = await analizarEnWorker('alto');
     if (turno !== estado.turno) return;
+    estado.aviso = null;
     if (r.familias.length === 0) {
       const arriba = estado.origen === 'camara' ? arribaCamara() : null;
       const focal = focalFija();
@@ -264,7 +265,7 @@ function bucle(t) {
     dibujarSuperposicion(ctx, r, estado.T, {
       modo: estado.ajustes.modo,
       rejilla: estado.ajustes.rejilla,
-      sueltos: estado.ajustes.sueltos,
+      aristas: estado.ajustes.aristas || (estado.ajustes.modo === 'B' && estado.congelado),
       seleccion: estado.seleccion,
       g: window.devicePixelRatio || 1,
       horizonteSensor: hs,
@@ -284,43 +285,53 @@ function mostrarApp() {
   $('app').hidden = false;
 }
 
-function mostrarMensaje(texto) { $('mensaje').textContent = texto; $('mensaje').hidden = !texto; }
-function mostrarError(texto) { estado.error = texto; mostrarMensaje(texto); }
+function pintarMensaje(texto) { $('mensaje').textContent = texto; $('mensaje').hidden = !texto; }
+/** Aviso breve: tiene prioridad unos segundos sobre los mensajes del análisis. */
+function mostrarMensaje(texto) { estado.aviso = texto ? { texto, t: performance.now() } : null; pintarMensaje(texto); }
+function mostrarError(texto) { estado.error = texto; pintarMensaje(texto); }
 
 function formato(n, d = 1) { return n.toFixed(d).replace('.', ','); }
 
 function actualizarIndicadores() {
-  // Sensores
+  // Sensores (texto corto: se lee de un vistazo)
   let textoSensor = '';
-  if (estado.origen === 'foto') textoSensor = 'Foto de galería: sin sensores';
+  if (estado.origen === 'foto') textoSensor = 'Foto de galería';
   else {
     const est = estadoSensores();
     const inc = estado.congelado ? estado.inclinacionCongelada : inclinacion(arribaCamara());
     if (inc) {
       const c = Math.abs(inc.cabeceo);
       textoSensor = c > CONFIG.umbralInclinacionCamara
-        ? `Cámara inclinada ${formato(c, 0)}° hacia ${inc.cabeceo > 0 ? 'arriba' : 'abajo'}: las verticales convergen`
-        : 'Cámara a plomo: las verticales quedan paralelas';
-      if (Math.abs(inc.alabeo) > 3) textoSensor += ` · girada ${formato(Math.abs(inc.alabeo), 0)}°`;
-    } else if (est === 'denegado') textoSensor = 'Sensores denegados: el horizonte se calcula solo con la imagen';
-    else if (est === 'inactivo') textoSensor = 'Sensores apagados (actívalos en Ajustes)';
-    else textoSensor = 'Sin sensor de inclinación';
+        ? `Móvil inclinado ${formato(c, 0)}° ${inc.cabeceo > 0 ? '↑' : '↓'} · las verticales convergen`
+        : 'Móvil a plomo · verticales paralelas';
+      if (Math.abs(inc.alabeo) > 3) textoSensor += ` · girado ${formato(Math.abs(inc.alabeo), 0)}°`;
+    } else if (est === 'denegado') textoSensor = 'Sin permiso de sensores';
+    else if (est === 'inactivo') textoSensor = 'Sensores apagados';
+    else textoSensor = '';
   }
   $('sensor').textContent = textoSensor;
 
-  // Mensaje del análisis
+  // Un único mensaje abajo, por prioridad: error > análisis > ayuda
   const r = estado.resultado;
-  if (!estado.error) {
-    if (r && r.mensaje) mostrarMensaje(r.mensaje);
-    else if (r) mostrarMensaje('');
-    else if (estado.origen === 'camara' && !estado.congelado) mostrarMensaje('Buscando líneas…');
+  let texto = estado.error;
+  let tenue = false;
+  if (!texto && estado.aviso && performance.now() - estado.aviso.t < 2500) texto = estado.aviso.texto;
+  if (!texto && estado.congelado && !r) texto = 'Analizando…';
+  if (!texto && r && r.mensaje) texto = r.mensaje;
+  if (!texto && !r && estado.origen === 'camara' && !estado.congelado) { texto = 'Buscando líneas…'; tenue = true; }
+  if (!texto && estado.congelado && r && r.familias.length) {
+    texto = estado.ajustes.modo === 'B'
+      ? 'Toca una línea para ver su desviación, o arrastra un punto de fuga o el horizonte.'
+      : 'Arrastra un punto de fuga o el horizonte para explorar el encaje.';
+    tenue = true;
   }
+  pintarMensaje(texto);
+  $('mensaje').classList.toggle('tenue', tenue);
 
-  // Focal y rendimiento
-  const info = [];
-  if (r && r.focalMM) info.push(`Focal ≈ ${formato(r.focalMM, 0)} mm (${r.fuenteFocal})`);
-  if (r && r.tiempos) info.push(`${Math.round(estado.congelado ? r.tiempos.total : estado.tiempoVivo || r.tiempos.total)} ms`);
-  $('info').textContent = info.join(' · ');
+  // Focal (los milisegundos van a Ajustes)
+  $('info').textContent = r && r.focalMM ? `Focal ≈ ${formato(r.focalMM, 0)} mm${r.fuenteFocal === 'por defecto' ? ' (supuesta)' : ''}` : '';
+  const ms = r && r.tiempos ? Math.round(estado.congelado ? r.tiempos.total : estado.tiempoVivo || r.tiempos.total) : null;
+  $('tecnico').textContent = r ? `Análisis: ${ms ?? '—'} ms · ${r.segmentos.length / 4} aristas · focal ${r.fuenteFocal}` : '';
 
   // Resumen del encaje (solo modo B)
   const resumen = $('resumen');
@@ -342,7 +353,6 @@ function actualizarBotones() {
   if (estado.origen === 'foto' || !estado.origen) { b.textContent = 'Cámara'; b.dataset.accion = 'camara'; }
   else if (estado.congelado) { b.textContent = 'Reanudar'; b.dataset.accion = 'reanudar'; }
   else { b.textContent = 'Congelar'; b.dataset.accion = 'congelar'; }
-  $('pista-edicion').hidden = !estado.congelado;
 }
 
 function sincronizarAjustes() {
@@ -352,7 +362,7 @@ function sincronizarAjustes() {
   $('modo-fijado').hidden = !modoFijado;
   $('modo-fijado').textContent = modoFijado ? `Modo ${modoFijado} fijado por el enlace del profesor.` : '';
   $('aj-rejilla').checked = a.rejilla;
-  $('aj-sueltos').checked = a.sueltos;
+  $('aj-aristas').checked = a.aristas;
   $('aj-vivo').checked = a.vivo;
   $('aj-focal-auto').checked = a.focalAuto;
   $('aj-focal').value = a.focalMM;
@@ -387,7 +397,7 @@ $('btn-exportar').addEventListener('click', async () => {
   const inc = estado.congelado ? estado.inclinacionCongelada : inclinacion(arribaCamara());
   const r = await exportar(estado.fuente, estado.resultado, {
     modo: estado.ajustes.modo, origen: estado.origen,
-    rejilla: estado.ajustes.rejilla, sueltos: estado.ajustes.sueltos,
+    rejilla: estado.ajustes.rejilla, aristas: estado.ajustes.aristas,
     inclinacion: estado.origen === 'camara' ? inc : null,
   });
   if (r === 'descargado') mostrarMensaje('Imagen y registro descargados.');
@@ -402,7 +412,7 @@ $('ajustes').addEventListener('change', (e) => {
   const focalAntes = JSON.stringify([a.focalAuto, a.focalMM]);
   if (e.target.name === 'modo') { a.modo = e.target.value; estado.seleccion = null; }
   a.rejilla = $('aj-rejilla').checked;
-  a.sueltos = $('aj-sueltos').checked;
+  a.aristas = $('aj-aristas').checked;
   a.vivo = $('aj-vivo').checked;
   a.focalAuto = $('aj-focal-auto').checked;
   a.focalMM = Number($('aj-focal').value);
