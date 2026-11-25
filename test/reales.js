@@ -22,7 +22,8 @@ for (const n of nombres) {
   const ctx = c.getContext('2d');
   ctx.fillStyle = '#111'; ctx.fillRect(0, 0, c.width, c.height);
   ctx.drawImage(img, T.ox, T.oy, img.naturalWidth * s, img.naturalHeight * s);
-  dibujarSuperposicion(ctx, r, T, { modo: 'A', g: 2 });
+  const todas = new URLSearchParams(location.search).get('capas') === 'todas';
+  dibujarSuperposicion(ctx, r, T, { modo: 'A', g: 2, aristas: todas, rejilla: todas });
   salida.push({
     foto: n,
     focalMM: +r.focalMM.toFixed(1), fuenteFocal: r.fuenteFocal,
