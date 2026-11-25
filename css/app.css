@@ -45,10 +45,10 @@ html, body {
   font-size: 0.7rem; line-height: 1.35; letter-spacing: 0.04em; color: var(--tenue); text-align: right;
 }
 
-/* el espacio libre se reparte por encima de la portada y por encima de los botones */
-.portada { margin: auto 0 12px; padding-top: 12px; }
-/* el dibujo se adapta a la altura disponible para que todo quepa sin desplazarse */
-.dibujo { display: block; width: 100%; height: clamp(96px, 21vh, 190px); margin: 0 auto 12px; overflow: visible; }
+/* la portada ocupa todo el espacio libre: el dibujo crece hasta llenarlo */
+.portada { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; margin: 14px 0 12px; }
+/* el dibujo se estira en alto hasta llenar el hueco (mantiene su proporción y se apoya abajo) */
+.dibujo { display: block; flex: 1 1 0; min-height: 90px; max-height: 360px; width: 100%; margin: 0 auto 14px; overflow: visible; }
 .dibujo path { fill: none; stroke-linecap: round; }
 .dibujo .r-rojo { stroke: rgba(255, 77, 77, 0.4); }
 .dibujo .r-azul { stroke: rgba(61, 155, 255, 0.4); }
@@ -87,7 +87,7 @@ h1 { font-size: clamp(2.6rem, min(13vw, 7.5vh), 4.1rem); line-height: 0.95; font
 .punto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .raya { display: inline-block; width: 16px; height: 3px; border-radius: 2px; flex: none; }
 
-.acciones { margin-top: auto; }
+.acciones { }
 .boton {
   display: block; width: 100%; min-height: 50px; margin: 0 0 8px; padding: 10px 16px;
   border-radius: 14px; border: 1px solid var(--borde); background: var(--panel-solido); color: var(--texto);
@@ -111,8 +111,8 @@ h1 { font-size: clamp(2.6rem, min(13vw, 7.5vh), 4.1rem); line-height: 0.95; font
 @media (max-height: 720px) {
   .logo { height: 30px; }
   .inicio-asignatura { font-size: 0.64rem; }
-  .portada { margin-bottom: 8px; padding-top: 8px; }
-  .dibujo { height: clamp(80px, 16vh, 120px); margin-bottom: 8px; }
+  .portada { margin: 8px 0 8px; }
+  .dibujo { min-height: 70px; margin-bottom: 8px; }
   .antetitulo { margin-bottom: 4px; font-size: 0.62rem; }
   h1 { font-size: clamp(2.3rem, min(12vw, 7vh), 3.2rem); margin-bottom: 6px; }
   .lema { font-size: 0.92rem; line-height: 1.35; }
@@ -124,7 +124,7 @@ h1 { font-size: clamp(2.6rem, min(13vw, 7.5vh), 4.1rem); line-height: 0.95; font
 }
 @media (max-height: 600px) {
   .leyenda { display: none; }
-  .dibujo { height: clamp(70px, 14vh, 90px); }
+  .dibujo { min-height: 60px; }
   .rotulo-dibujo { display: none; }
 }
 
