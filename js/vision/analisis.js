@@ -9,7 +9,7 @@
 import { CONFIG } from '../config.js';
 import { detectarSegmentos } from './segmentos.js';
 import { prepararSegmentos, detectarFamilias, buscarFamiliaGuiada } from './fuga.js';
-import { estimarFocal, clasificar, calcularHorizonte, horizonteSensor, imagenAEsfera } from './manhattan.js';
+import { resolverEstructura, calcularHorizonte, horizonteSensor } from './manhattan.js';
 import { aImagen, aleatorio, mmAPx, pxAMm, rectaDesdeNormal, errorAngular, cruz, normalizar, anguloDirecciones } from './geometria.js';
 
 /**
@@ -41,20 +41,20 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
     rng: aleatorio(cfg.semilla),
   });
 
-  // 3. Focal: fija (EXIF/usuario), estimada de la escena, o por defecto
+  // 3. Focal, vertical, horizontales y pendientes (ver manhattan.js)
   let fuenteFocal = focalFija ? op.fuenteFocal || 'usuario' : 'por defecto';
-  const reestimarFocal = () => {
-    if (focalFija || familias.length < 2) return;
-    const est = estimarFocal(familias, cam, ancho, alto, cfg);
-    if (!est) return;
-    // los puntos de fuga en la imagen no cambian; sus direcciones 3D sí
-    const puntos = familias.map((f) => aImagen(f.v, cam));
-    cam = { ...cam, f: est.f };
-    familias.forEach((f, i) => { f.v = imagenAEsfera(puntos[i], cam); });
-    fuenteFocal = 'escena';
+  const estructura = () => {
+    if (!familias.length) return;
+    const res = resolverEstructura(familias, datos, cam, ancho, alto, arriba, cfg, focalFija);
+    cam = res.cam;
+    if (!focalFija) fuenteFocal = res.fuenteFocal;
+    // pendientes no arquitectónicas: fuera (sus líneas quedan sin familia)
+    for (let k = familias.length - 1; k >= 0; k--) {
+      if (familias[k].descartar) { descartadas.push(familias[k]); familias.splice(k, 1); }
+    }
   };
-  reestimarFocal();
-  clasificar(familias, arriba, cfg);
+  const descartadas = [];
+  estructura();
 
   // 4. Tercera dirección guiada: si hay vertical (o sensor) y UNA horizontal,
   //    la otra horizontal es perpendicular a ambas. Se busca en esa zona.
@@ -72,8 +72,7 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
     });
     if (guiada) {
       familias.push(guiada);
-      reestimarFocal();
-      clasificar(familias, arriba, cfg);
+      estructura();
     }
   }
   const hz = calcularHorizonte(familias, arriba);
@@ -121,6 +120,8 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
       punto: [V[0] * escala, V[1] * escala, V[2]],
       tipo: f.tipo,
       guiada: !!f.guiada,
+      pendiente: f.pendiente,
+      puntoPlanta: f.vPlanta ? (() => { const P = aImagen(f.vPlanta, cam); return [P[0] * escala, P[1] * escala, P[2]]; })() : undefined,
       nSegmentos: f.inliers.length,
       longitudRel: f.longitud / lado,
       rectasDistintas: f.rectasDistintas,

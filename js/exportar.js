@@ -46,6 +46,7 @@ export function construirRegistro(r, contexto) {
       return {
         etiqueta: f.etiqueta,
         tipo: f.tipo,
+        pendienteGrados: f.pendiente != null ? +f.pendiente.toFixed(1) : null,
         x: c ? +c[0].toFixed(1) : null,       // null = en el infinito (rectas paralelas)
         y: c ? +c[1].toFixed(1) : null,
         homogeneo: f.punto.map((n) => +n.toPrecision(6)),

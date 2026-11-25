@@ -56,9 +56,11 @@ export class Seguidor {
         mejor.perdidos = 0;
         mejor.tipo = fam.tipo;
         mejor.guiada = fam.guiada;
+        mejor.pendiente = fam.pendiente;
+        mejor.puntoPlanta = fam.puntoPlanta;
         return mejor;
       }
-      const nueva = { id: this.siguienteId++, v, tipo: fam.tipo, guiada: fam.guiada, vistos: 1, perdidos: 0 };
+      const nueva = { id: this.siguienteId++, v, tipo: fam.tipo, guiada: fam.guiada, pendiente: fam.pendiente, puntoPlanta: fam.puntoPlanta, vistos: 1, perdidos: 0 };
       this.pistas.push(nueva);
       usadas.add(nueva);
       return nueva;
@@ -68,7 +70,7 @@ export class Seguidor {
 
     // 2. Pistas que se muestran
     const visibles = this.pistas.filter((p) => p.vistos >= cfg.fotogramasParaMostrar);
-    const familias = visibles.map((p) => ({ id: p.id, v: p.v, punto: aImagen(p.v, cam), tipo: p.tipo, guiada: p.guiada, nSegmentos: 0, residualMedio: 0 }));
+    const familias = visibles.map((p) => ({ id: p.id, v: p.v, punto: aImagen(p.v, cam), tipo: p.tipo, guiada: p.guiada, pendiente: p.pendiente, puntoPlanta: p.puntoPlanta, nSegmentos: 0, residualMedio: 0 }));
     const familiaSeg = new Int8Array(r.familiaSeg.length).fill(-1);
     for (let i = 0; i < r.familiaSeg.length; i++) {
       const k = r.familiaSeg[i];

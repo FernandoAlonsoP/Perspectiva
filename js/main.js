@@ -647,7 +647,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 // colores en la leyenda de la pantalla de inicio
 document.querySelectorAll('[data-color]').forEach((el) => {
   const c = el.dataset.color;
-  el.style.background = c === 'vertical' ? COLORES.vertical : c === 'horizonte' ? COLORES.horizonte : COLORES.horizontal[Number(c)];
+  el.style.background = c === 'vertical' ? COLORES.vertical : c === 'horizonte' ? COLORES.horizonte : c === 'pendiente' ? COLORES.inclinada : COLORES.horizontal[Number(c)];
 });
 
 // Ayuda para las pruebas automáticas (test/e2e.mjs): coordenadas CSS de elementos dibujados

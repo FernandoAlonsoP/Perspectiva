@@ -30,8 +30,9 @@ No hay instalación, cuentas, servidor ni analítica. **Todo se procesa en el m�
 1. **Horizonte** (amarillo), el calculado a partir de la imagen. El del sensor solo aparece si no hay horizonte en la imagen, o si se activa «Comparar con el horizonte del sensor».
 2. **Puntos de fuga**: un círculo si caen en la pantalla y una flecha con la distancia si caen fuera.
 3. **Líneas de fuga**: como máximo 5 por familia horizontal. Cada una sale del punto de fuga, pasa por una arista real (resaltada) y llega al borde de la imagen. Son **afiladas**: gruesas cerca del observador, finas y transparentes al llegar al punto de fuga. Se prefieren aristas largas y alejadas del punto de fuga, porque las cercanas apenas lo confirman.
-4. **Verticales**: solo si convergen de forma visible (móvil inclinado). Con el móvil a plomo son paralelas y no se dibujan.
-5. Opcional, en Ajustes → Capas: todas las aristas detectadas, la rejilla y la comparación con el sensor.
+4. **Pendientes** (naranja): escaleras, rampas, cubiertas. Se etiquetan con su ángulo («PF pendiente 34°») y se dibuja la **traza vertical** discontinua que une su punto de fuga con el de su planta sobre el horizonte. En una escalera de ida y vuelta, la misma traza une el PF del tramo que sube y el del que baja.
+5. **Verticales**: solo si convergen de forma visible (móvil inclinado). Con el móvil a plomo son paralelas y no se dibujan.
+6. Opcional, en Ajustes → Capas: todas las aristas detectadas, la rejilla y la comparación con el sensor.
 
 Las etiquetas se recolocan para no pisarse.
 
@@ -100,9 +101,11 @@ node test/e2e.mjs        # recorre la app completa con una cámara falsa → cap
 node test/e2e.mjs salon vertical   # lo mismo con otra escena y en vertical
 ```
 
-### Resultado del banco (v0.4.0)
+### Resultado del banco (v0.6.0)
 
-Hay 10 escenas sintéticas: cubo en 1 punto; cubo en 2 puntos a 26 mm y a 16 mm; pasillo; calle; fachada vista desde abajo; calle con teleobjetivo de 50 mm; edificio con vegetación delante; salón casi frontal de poco contraste; y vegetación sin arquitectura. Cada una se analiza en calidad vivo y alta, con y sin sensor: **38/38 superadas**.
+Hay 10 escenas sintéticas: cubo en 1 punto; cubo en 2 puntos a 26 mm y a 16 mm; pasillo; calle; fachada vista desde abajo; calle con teleobjetivo de 50 mm; edificio con vegetación delante; salón casi frontal de poco contraste; y vegetación sin arquitectura. Cada una se analiza en calidad vivo y alta, con y sin sensor: **42/42 superadas**, incluida una escalera sintética de 31,3° que se mide como 30,8–30,9°.
+
+**Fotos reales** (`node test/reales.mjs`, con fotos en `test/fotos/`, que **no se suben** al repositorio por privacidad): cocina, peana y dos escaleras. Las pendientes de las escaleras se miden en 33–35°, valores típicos de una escalera doméstica.
 
 - Criterio: al menos 2 direcciones con error < 2° y horizonte con error < 2°.
 - Errores típicos: **0,02°–0,6°**.
@@ -125,7 +128,8 @@ cámara/foto → copia reducida en grises → [Web Worker]
 1. **Segmentos.** Se calcula en cada píxel hacia dónde cambia la luz (gradiente). Los píxeles vecinos con la misma orientación se agrupan, y si el grupo forma un rectángulo largo, estrecho y denso es un segmento. Es una versión simplificada de LSD (von Gioi et al., 2010).
 2. **Puntos de fuga.** Se cortan dos segmentos al azar y se cuenta cuántos otros "apuntan" a ese corte, con un margen de 2°. Tras repetirlo cientos de veces gana el más votado (RANSAC; Fischler y Bolles, 1981). Se retiran sus segmentos y se busca el siguiente punto, hasta tres. El voto se mide en grados, no en píxeles, para que funcione con puntos lejanos o en el infinito (rectas paralelas).
 3. **Tercera dirección guiada.** En arquitectura ortogonal, si se conocen la vertical (por las líneas o por el sensor) y una horizontal, la otra horizontal es perpendicular a ambas. Esa familia (en un interior, la de profundidad) suele tener pocas líneas. Se busca solo en un cono de 20° alrededor de la dirección prevista, y por eso basta con menos evidencia (3 líneas, 2 rectas distintas) sin riesgo de inventar.
-4. **Estructura.** Si dos puntos de fuga corresponden a direcciones perpendiculares (mundo Manhattan; Coughlan y Yuille, 1999), su posición da la focal: `f² = −(v₁ − c)·(v₂ − c)`. Con la focal, cada punto es una dirección 3D y se puede decir cuál es vertical, cuáles horizontales y dónde cae el horizonte.
+4. **Pendientes.** Una escalera añade una cuarta dirección que no es perpendicular a las demás. La vertical se reconoce en la imagen o con el sensor, sin depender de la focal. La focal se elige por coherencia: la que hace perpendiculares a la vertical el mayor número de líneas, con preferencia por focales de móvil. Así la pendiente no puede falsearla. Lo que no es vertical ni horizontal es una pendiente si su planta sigue una dirección del edificio; si no la sigue (por ejemplo, patas de un taburete), se descarta. Por debajo de 15° se considera una horizontal mal medida.
+5. **Estructura.** Si dos puntos de fuga corresponden a direcciones perpendiculares (mundo Manhattan; Coughlan y Yuille, 1999), su posición da la focal: `f² = −(v₁ − c)·(v₂ − c)`. Con la focal, cada punto es una dirección 3D y se puede decir cuál es vertical, cuáles horizontales y dónde cae el horizonte.
 
 Todos los umbrales están en **`js/config.js`**, comentados. Cada JSON exportado guarda una copia de ellos.
 
@@ -202,6 +206,7 @@ Este desarrollo forma parte de una investigación sobre co-autoría con agentes 
 | 2026-11-25 | v0.5.0 · Rediseño de la pantalla de inicio: cabecera institucional (logotipo + asignatura), dibujo de perspectiva de dos puntos animado con los colores de la app, título con antetítulo, leyenda en etiquetas y botones abajo | Petición del profesor: «mejorar la composición del título y la parte de arriba, un toque más diseñado» | Profesor (petición), agente (diseño) |
 | 2026-11-25 | v0.5.0 · Logotipo oficial en negativo | Facilitado por el profesor en negro sobre blanco; solo se ha invertido, sin redibujar | Profesor |
 | 2026-11-25 | v0.5.1 · «Expresión Gráfica Arquitectónica» en lugar del nombre de la asignatura; nombres completos de los autores con su titulación; inicio sin desplazamiento en cualquier móvil (ajustes por altura de pantalla, verificado de 553 a 852 px de alto) | Petición del profesor | Profesor |
+| 2026-11-25 | v0.6.0 · Escaleras y pendientes: cuarta familia, vertical reconocida en la imagen, focal elegida por coherencia (no por un solo par), pendiente con su ángulo y traza vertical hasta el PF de su planta; pendientes no arquitectónicas descartadas | Prueba real: la escalera no se reconocía. Diagnóstico con las fotos originales: la pendiente se tomaba como perpendicular a la vertical → focal de 74–78 mm en vez de ~26 mm | Profesor (fotos y pregunta), agente (diagnóstico y solución) |
 | 2026-11-25 | Sin cámara simulada en móvil: queda pendiente probar en iPhone y Android reales | No se puede verificar desde el entorno de desarrollo | — |
 
 ## Referencias técnicas

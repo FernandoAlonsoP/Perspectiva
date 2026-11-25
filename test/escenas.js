@@ -281,6 +281,35 @@ export const ESCENAS = [
     ruido: 12,
   },
   {
+    nombre: 'escalera',
+    descripcion: 'Escalera recta (huella 28, tabica 17 → 31,3°) vista desde arriba en diagonal, con zanca, rodapié y barandilla',
+    camara: { posicion: [2.6, 2.4, 1.2], guinada: -30, cabeceo: 16 },
+    pendientes: [{ dir: [0, 0.17, 0.28], grados: Math.atan2(0.17, 0.28) * 180 / Math.PI }],
+    polys: () => {
+      const MADERA = [150, 85, 50], PARED = [232, 230, 224], HIERRO = [35, 35, 38], ZANCA = [90, 55, 35];
+      const z0 = 3, n = 14, h = 0.17, t = 0.28;
+      const zf = z0 + n * t, yf = n * h;
+      const out = [...suelo(-4, 6, -1, 12, 1, [175, 125, 85])];
+      out.push({ p: [[-0.6, 0, -1], [-0.6, 5, -1], [-0.6, 5, 12], [-0.6, 0, 12]], c: PARED, k: 0.92 });   // pared izquierda
+      for (let i = 0; i < n; i++) out.push(...caja(-0.6, 0, z0 + i * t, 0.6, (i + 1) * h, z0 + (i + 1) * t + 0.03, MADERA));
+      // rodapié inclinado sobre la pared (franja paralela a la pendiente)
+      out.push({ p: [[-0.59, h + 0.02, z0], [-0.59, yf + h + 0.02, zf], [-0.59, yf + h + 0.14, zf], [-0.59, h + 0.14, z0]], c: [250, 250, 248], k: 1, capa: 1 });
+      // zanca exterior (cara lateral inclinada, cubre las cabezas de los peldaños)
+      out.push({ p: [[0.61, -0.05, z0 - 0.05], [0.61, yf - 0.05, zf - 0.05], [0.61, yf + 0.08, zf], [0.61, 0.08, z0]], c: ZANCA, k: 0.8, capa: 1 });
+      out.push({ p: [[0.61, 0, z0], [0.61, 0, z0 + 0.4], [0.61, -0.05, z0 + 0.4], [0.61, -0.05, z0]], c: ZANCA, k: 0.8, capa: 1 });
+      // barandilla: pasamanos y listón intermedio paralelos a la pendiente, montantes verticales
+      for (const [y1, y2] of [[0.9, 0.96], [0.45, 0.48]]) {
+        out.push({ p: [[0.68, y1, z0], [0.68, yf + y1, zf], [0.68, yf + y2, zf], [0.68, y2, z0]], c: HIERRO, k: 1, capa: 2 });
+      }
+      for (let i = 0; i <= n; i += 3) {
+        const z = z0 + i * t + 0.1, y = i * h;
+        out.push({ p: [[0.68, y, z], [0.68, y + 0.92, z], [0.68, y + 0.92, z + 0.04], [0.68, y, z + 0.04]], c: HIERRO, k: 1, capa: 2 });
+      }
+      return out;
+    },
+    ruido: 8,
+  },
+  {
     nombre: 'sin-estructura',
     descripcion: 'Vegetación y curvas: debe decir "no se detectan líneas fiables"',
     organica: true,
@@ -318,6 +347,7 @@ export function generar(escena, ancho = 1280, alto = 960) {
     verdad: {
       focalPx,
       ejes: { x: cam.direccion([1, 0, 0]), vertical: cam.direccion([0, 1, 0]), z: cam.direccion([0, 0, 1]) },
+      pendientes: (escena.pendientes || []).map((p) => ({ dir: cam.direccion(p.dir), grados: p.grados })),
     },
   };
 }

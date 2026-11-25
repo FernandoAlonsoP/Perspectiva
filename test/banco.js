@@ -15,7 +15,7 @@ let dibujarSuperposicion = null;
 try { ({ dibujarSuperposicion } = await import('../js/overlay.js')); } catch { /* aún no existe */ }
 
 function evaluar(r, verdad, ancho, alto) {
-  if (!verdad) return { ejes: null, horizonte: null };
+  if (!verdad) return { ejes: null, horizonte: null, pendientes: [] };
   const camV = { f: verdad.focalPx, cx: ancho / 2, cy: alto / 2 };
   const dirs = r.familias.map((f) => imagenAEsfera(f.punto, camV));
   const ejes = {};
@@ -28,7 +28,17 @@ function evaluar(r, verdad, ancho, alto) {
     const N = normalizar([a * camV.f, b * camV.f, a * camV.cx + b * camV.cy + c]);
     horizonte = anguloDirecciones(N, verdad.ejes.vertical);
   }
-  return { ejes, horizonte };
+  // pendientes (escaleras): error de dirección y de ángulo de la mejor familia inclinada
+  const pendientes = (verdad.pendientes || []).map((pv) => {
+    let mejor = null;
+    r.familias.forEach((f, k) => {
+      if (f.tipo !== 'inclinada') return;
+      const e = anguloDirecciones(dirs[k], pv.dir);
+      if (!mejor || e < mejor.error) mejor = { error: e, medida: f.pendiente, real: pv.grados };
+    });
+    return mejor;
+  });
+  return { ejes, horizonte, pendientes };
 }
 
 const salida = [];
@@ -56,7 +66,7 @@ for (const escena of soloGenerar ? [] : ESCENAS) {
         escena: escena.nombre, variante, calidad,
         familias: r.familias.map((f) => `${f.tipo}(${f.nSegmentos}, L${f.longitudRel.toFixed(1)}, d${f.rectasDistintas}, %${(f.fraccion*100).toFixed(0)}, ${f.residualMedio.toFixed(2)}°)`),
         focalMM: +r.focalMM.toFixed(1), fuenteFocal: r.fuenteFocal,
-        errorEjes: ev.ejes, errorHorizonte: ev.horizonte, horizonteFuente: r.horizonte?.fuente ?? null,
+        errorEjes: ev.ejes, errorHorizonte: ev.horizonte, pendientes: ev.pendientes, horizonteFuente: r.horizonte?.fuente ?? null,
         fiable: r.fiable, mensaje: r.mensaje, comprobacion: r.comprobacion,
         segmentos: r.nSegmentos, ms: Math.round(r.tiempos.total),
         imagen,

@@ -20,7 +20,10 @@ export function etiquetarFamilias(familias) {
   });
   for (const f of familias) {
     if (f.tipo === 'vertical') { f.color = COLORES.vertical; f.etiqueta = 'PF vertical'; }
-    if (f.tipo === 'inclinada') { f.color = COLORES.inclinada; f.etiqueta = 'PF inclinado'; }
+    if (f.tipo === 'inclinada') {
+      f.color = COLORES.inclinada;
+      f.etiqueta = f.pendiente != null ? `PF pendiente ${Math.round(f.pendiente)}°` : 'PF inclinado';
+    }
   }
 }
 
@@ -291,6 +294,26 @@ export function dibujarSuperposicion(ctx, r, T, op = {}) {
     const izq = pEscena[0][0] < pEscena[1][0] ? pEscena[0] : pEscena[1];
     const extra = r.horizonte.manual ? ' (ajustado a mano)' : op.compararSensor && coinciden ? ' ✓ sensor' : r.horizonte.fuente.startsWith('estimado') ? ' (estimado)' : '';
     etiqueta(ctx, `Horizonte${extra}`, izq[0] + 8 * g, izq[1] - 16 * g, COLORES.horizonte, g);
+  }
+
+  // 4b. Pendientes (escaleras, rampas, cubiertas): su punto de fuga está en la
+  //     vertical del punto de fuga de su planta, sobre el horizonte. Se dibuja esa
+  //     traza (discontinua) y, si no hay ya un PF horizontal allí, un círculo hueco.
+  for (const f of r.familias) {
+    if (f.tipo !== 'inclinada' || !f.puntoPlanta) continue;
+    const a = cartesianoLienzo(T, f.puntoPlanta, limite), b = cartesianoLienzo(T, f.punto, limite);
+    if (!a || !b) continue;
+    ctx.setLineDash([7 * g, 6 * g]);
+    lineaConHalo(ctx, a, b, f.color, 1.6 * g, g, 0.9);
+    ctx.setLineDash([]);
+    const yaHay = r.familias.some((h) => h.tipo === 'horizontal' && (() => {
+      const q = cartesianoLienzo(T, h.punto, limite); return q && Math.hypot(q[0] - a[0], q[1] - a[1]) < 30 * g;
+    })());
+    if (!yaHay && a[0] > 0 && a[0] < W && a[1] > 0 && a[1] < H) {
+      ctx.strokeStyle = f.color; ctx.lineWidth = 2 * g;
+      ctx.beginPath(); ctx.arc(a[0], a[1], 7 * g, 0, Math.PI * 2); ctx.stroke();
+      etiqueta(ctx, 'planta', a[0] + 12 * g, a[1] + 14 * g, f.color, g);
+    }
   }
 
   // 5. Puntos de fuga: marcador si se ven, flecha en el borde si no

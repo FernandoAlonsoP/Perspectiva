@@ -6,7 +6,7 @@
 // reproducir y comparar resultados (necesario para el estudio docente).
 // =============================================================================
 
-export const VERSION = '0.5.2';
+export const VERSION = '0.6.0';
 
 // Autoría y créditos (pantalla de inicio, Ajustes → Acerca de, exportaciones)
 export const CREDITOS = {
@@ -41,7 +41,7 @@ export const CONFIG = {
   fusionHuecoRel: 0.03,      // hueco máximo entre trozos, relativo al lado largo
 
   // --- Puntos de fuga (RANSAC) ---------------------------------------------
-  maxFamilias: 3,            // como mucho 3 puntos de fuga (perspectiva de 3 puntos)
+  maxFamilias: 4,            // 3 direcciones ortogonales + 1 pendiente (escalera, rampa, cubierta)
   iteracionesVivo: 250,
   iteracionesAlto: 1500,
   umbralInlier: 2.0,         // grados: un segmento "apunta" al punto de fuga si su error es menor
@@ -64,7 +64,13 @@ export const CONFIG = {
 
   // --- Clasificación de familias -----------------------------------------------
   toleranciaVertical: 15,    // grados entre una familia y la vertical para llamarla "vertical"
-  toleranciaHorizontal: 20,  // grados de inclinación máxima para llamarla "horizontal"
+  toleranciaHorizontal: 8,   // grados de inclinación máxima para llamarla "horizontal" (más: pendiente)
+  verticalImagenGrados: 25,  // las líneas de la familia vertical son casi verticales EN LA IMAGEN
+  verticalSensorGrados: 15,  // y (con sensor) su punto de fuga está en la dirección de la gravedad
+  pendienteMinima: 15,       // grados: por debajo no es escalera/cubierta, sino horizontal mal medida
+  alineacionPendiente: 10,   // grados: la planta de una pendiente debe seguir una dirección del edificio
+  toleranciaManhattan: 3,    // grados de margen para considerar dos direcciones perpendiculares
+  focalDispersion: 1.7,      // preferencia por focales de móvil: desviación típica (factor) sobre 26 mm
   umbralInclinacionCamara: 4,// grados: a partir de aquí las verticales convergen visiblemente
 
   // --- Seguimiento en vivo (suavizado entre fotogramas) ----------------------
