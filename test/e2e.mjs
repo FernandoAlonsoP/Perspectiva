@@ -54,7 +54,9 @@ await contexto.grantPermissions(['camera'], { origin: base });
 pagina = await contexto.newPage();
 const errores = [];
 pagina.on('pageerror', (e) => errores.push(e.message));
-pagina.on('console', (m) => { if (m.type() === 'error') errores.push(m.text()); });
+pagina.on('console', (m) => { if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errores.push(m.text()); });
+// archivos que faltan: error, salvo el logotipo (opcional hasta que se añada el oficial)
+pagina.on('response', (r) => { if (r.status() >= 400 && !/\/img\/logo-unav\./.test(r.url())) errores.push(`${r.status()} ${r.url()}`); });
 
 const paso = async (nombre) => {
   await pagina.screenshot({ path: path.join(salida, `e2e-${nombre}.png`) });

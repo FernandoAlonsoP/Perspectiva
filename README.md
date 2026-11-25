@@ -22,7 +22,7 @@ No hay instalación, cuentas, servidor ni analítica. **Todo se procesa en el m�
 | **Ver fugas** | Con la imagen congelada, encuadra la foto y sus puntos de fuga: se ve cómo las líneas continúan fuera de la foto hasta encontrarse. |
 | **Reanudar** / **Cámara** | Vuelve a la cámara en vivo. |
 | **Foto** | Analiza una foto de la galería. Usa la focal EXIF si la foto la trae. |
-| **Exportar** | Guarda **una imagen con lo que se ve en pantalla** (con el zoom y el encuadre actuales). Opcionalmente, en Ajustes: la foto sin líneas y el registro JSON. |
+| **Exportar** | Guarda **una imagen con lo que se ve en pantalla** (con el zoom y el encuadre actuales) y la **foto original sin líneas**. Opcional, en Ajustes: el registro JSON. |
 | **Ajustes** | Modo A/B, capas (todas las aristas, rejilla), análisis en vivo, focal y sensores. |
 
 ### Qué se dibuja (jerarquía visual)
@@ -168,7 +168,7 @@ Son unas 2.200 líneas, sin dependencias externas ni paso de compilación. Pesa 
 - **Autores:** Carlos Naya y Fernando Alonso, profesores de la Universidad de Navarra.
 - **Contexto:** asignatura *Laboratorio de Geometría y Forma* (expresión gráfica arquitectónica).
 - **Desarrollo asistido por IA:** el código se escribió con la asistencia de Claude Opus 5.5 (Anthropic), a partir de los encargos, las pruebas en el aula y las correcciones de los autores. El registro de decisiones de abajo documenta ese proceso.
-- La marca aparece **solo como texto** (inicio, rótulo discreto en la app, pie de las imágenes exportadas, «Acerca de» y JSON). Para usar el logotipo oficial hay que pedir los archivos y las normas de uso al servicio de identidad corporativa de la Universidad.
+- **Logotipo:** la pantalla de inicio muestra el logotipo oficial si existe `img/logo-unav.svg` (o `.png`); si no, el texto «Universidad de Navarra». Hay que usar el archivo oficial en negativo (blanco), según las normas de identidad corporativa (ver `img/LEEME.md`). En el resto de la app la marca aparece como texto: rótulo discreto, pie de las imágenes exportadas, «Acerca de» y JSON.
 
 ## Registro de decisiones técnicas
 
@@ -198,6 +198,7 @@ Este desarrollo forma parte de una investigación sobre co-autoría con agentes 
 | 2026-11-25 | v0.4.0 · Zoom y desplazamiento en la imagen congelada; botón «Ver fugas»; exportación de la vista ampliada | Petición del profesor tras la 3.ª prueba real: «ver la continuidad de las líneas hasta dónde van las fugas» | Profesor (petición), agente (solución) |
 | 2026-11-25 | v0.4.0 · Marca institucional discreta y créditos (autores, Universidad de Navarra, asistencia de IA) | Petición de los autores; reconocer la asistencia de IA es coherente con la investigación sobre co-autoría | Profesor |
 | 2026-11-25 | v0.4.1 · Exportar = exactamente lo que se ve en pantalla; por defecto un solo archivo (foto original y JSON, opcionales; JSON forzable con `?registro=1`) | El profesor exportó y obtuvo el encuadre automático «foto + fugas» y tres archivos en vez de lo que veía | Profesor (diagnóstico), agente (solución) |
+| 2026-11-25 | v0.4.2 · La foto sin líneas vuelve a exportarse por defecto; hueco para el logotipo oficial en el inicio | Petición del profesor. El logotipo no se ha recreado ni descargado: debe ser el archivo oficial | Profesor |
 | 2026-11-25 | Sin cámara simulada en móvil: queda pendiente probar en iPhone y Android reales | No se puede verificar desde el entorno de desarrollo | — |
 
 ## Referencias técnicas

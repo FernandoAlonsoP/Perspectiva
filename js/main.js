@@ -27,7 +27,7 @@ const lienzo = $('lienzo');
 const ctx = lienzo.getContext('2d');
 
 // --- Estado -------------------------------------------------------------------
-const AJUSTES_DEFECTO = { modo: 'A', rejilla: false, aristas: false, compararSensor: false, autoGiro: true, exportarOriginal: false, exportarRegistro: false, vivo: true, focalAuto: true, focalMM: CONFIG.focalDefectoMM };
+const AJUSTES_DEFECTO = { modo: 'A', rejilla: false, aristas: false, compararSensor: false, autoGiro: true, exportarOriginal: true, exportarRegistro: false, vivo: true, focalAuto: true, focalMM: CONFIG.focalDefectoMM };
 const estado = {
   origen: null,          // 'camara' | 'foto'
   congelado: false,
@@ -56,9 +56,11 @@ const modoFijado = ['A', 'B'].includes(parametros.get('modo')) ? parametros.get(
 
 try {
   const guardados = JSON.parse(localStorage.getItem('perspectiva.ajustes') || '{}');
-  // v0.4.1: exportar solo la imagen por defecto (antes salían 3 archivos)
-  if (!guardados.versionAjustes) { delete guardados.exportarOriginal; delete guardados.exportarRegistro; }
-  guardados.versionAjustes = 2;
+  // Migración de ajustes guardados por versiones anteriores:
+  //  v0.4.1 → el JSON deja de exportarse por defecto; v0.4.2 → la foto sin líneas vuelve a exportarse por defecto
+  if (!guardados.versionAjustes) delete guardados.exportarRegistro;
+  if (!guardados.versionAjustes || guardados.versionAjustes < 3) delete guardados.exportarOriginal;
+  guardados.versionAjustes = 3;
   Object.assign(estado.ajustes, guardados);
 } catch { /* navegación privada: se usan los valores por defecto */ }
 if (modoFijado) estado.ajustes.modo = modoFijado;
@@ -632,6 +634,17 @@ window.addEventListener('pagehide', () => detenerCamara());
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('./sw.js').catch(() => { /* sin modo sin conexión */ });
+}
+
+// Logotipo de la Universidad: se muestra si el archivo existe (svg o png); si no, queda el texto
+{
+  const logo = $('logo-unav');
+  logo.addEventListener('load', () => { logo.hidden = false; $('marca-texto').hidden = true; });
+  logo.addEventListener('error', () => {
+    const alt = logo.dataset.alternativo;
+    if (alt && !logo.src.endsWith(alt)) logo.src = alt;
+  });
+  if (logo.complete && logo.naturalWidth) { logo.hidden = false; $('marca-texto').hidden = true; }
 }
 
 // colores en la leyenda de la pantalla de inicio

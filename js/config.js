@@ -6,7 +6,7 @@
 // reproducir y comparar resultados (necesario para el estudio docente).
 // =============================================================================
 
-export const VERSION = '0.4.1';
+export const VERSION = '0.4.2';
 
 // Autoría y créditos (pantalla de inicio, Ajustes → Acerca de, exportaciones)
 export const CREDITOS = {
