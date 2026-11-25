@@ -10,7 +10,7 @@ import { CONFIG } from '../config.js';
 import { detectarSegmentos } from './segmentos.js';
 import { prepararSegmentos, detectarFamilias, buscarFamiliaGuiada } from './fuga.js';
 import { estimarFocal, clasificar, calcularHorizonte, horizonteSensor, imagenAEsfera } from './manhattan.js';
-import { aImagen, aleatorio, mmAPx, pxAMm, rectaDesdeNormal, errorAngular, cruz, normalizar } from './geometria.js';
+import { aImagen, aleatorio, mmAPx, pxAMm, rectaDesdeNormal, errorAngular, cruz, normalizar, anguloDirecciones } from './geometria.js';
 
 /**
  * @param gris      Float32Array con la imagen reducida en grises (0–255)
@@ -78,11 +78,36 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
   }
   const hz = calcularHorizonte(familias, arriba);
 
-  // 5. Residuales por segmento y resultado en píxeles de la imagen original
+  // 5. Aristas ambiguas. Cualquier recta que pase cerca de un punto de fuga
+  //    "apunta" a él, aunque pertenezca a otra dirección (p. ej. una vertical que
+  //    cruza el punto de fuga central). Cada arista se queda en la familia con
+  //    la que encaja MEJOR; si encaja con la vertical del sensor, sale de las
+  //    familias horizontales.
+  const puntosV = familias.map((f) => aImagen(f.v, cam));
+  const verticalSensor = !familias.some((f) => f.tipo === 'vertical') && arriba ? aImagen(normalizar(arriba), cam) : null;
+  const asignada = new Int8Array(n).fill(-1);
+  familias.forEach((f, k) => { for (const i of f.inliers) asignada[i] = k; });
+  for (let i = 0; i < n; i++) {
+    const k = asignada[i];
+    if (k < 0) continue;
+    const s = datos[i];
+    const err = puntosV.map((V) => errorAngular(s.mx, s.my, s.dx, s.dy, V));
+    let mejor = k;
+    err.forEach((e, j) => { if (e < err[mejor]) mejor = j; });
+    asignada[i] = mejor;
+    if (verticalSensor && familias[mejor].tipo !== 'vertical' &&
+        errorAngular(s.mx, s.my, s.dx, s.dy, verticalSensor) < Math.min(cfg.umbralInlier, err[mejor] + 0.5)) {
+      asignada[i] = -1;
+    }
+  }
+  familias.forEach((f, k) => { f.inliers = []; });
+  for (let i = 0; i < n; i++) if (asignada[i] >= 0) familias[asignada[i]].inliers.push(i);
+
+  // 6. Residuales por segmento y resultado en píxeles de la imagen original
   const familiaSeg = new Int8Array(n).fill(-1);
   const residualSeg = new Float32Array(n);
   const salida = familias.map((f, k) => {
-    const V = aImagen(f.v, cam);
+    const V = puntosV[k];
     let suma = 0;
     for (const i of f.inliers) {
       const s = datos[i];
@@ -103,6 +128,19 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
       residualMedio: f.inliers.length ? suma / f.inliers.length : 0,
     };
   });
+
+  // 7. Autocomprobación (no interviene en el cálculo; sirve para juzgar si fiarse):
+  //    · el horizonte de la imagen frente al de la gravedad (sensor)
+  //    · la vertical frente a las horizontales: deberían formar 90° en el espacio
+  const comprobacion = {};
+  if (hz && arriba && !hz.fuente.includes('sensor')) {
+    comprobacion.horizonteVsSensorGrados = +(anguloDirecciones(hz.normal, normalizar(arriba))).toFixed(2);
+  }
+  const vFam = familias.find((f) => f.tipo === 'vertical');
+  if (vFam) {
+    const desv = familias.filter((f) => f.tipo === 'horizontal').map((f) => Math.abs(90 - anguloDirecciones(vFam.v, f.v)));
+    if (desv.length) comprobacion.ortogonalidadGrados = +Math.max(...desv).toFixed(2);
+  }
 
   const camOriginal = { f: cam.f * escala, cx: cam.cx * escala, cy: cam.cy * escala };
   for (let i = 0; i < segmentos.length; i++) segmentos[i] *= escala;
@@ -130,6 +168,7 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
     horizonteSensor: horizonteSensor(arriba, camOriginal),
     fiable,
     mensaje,
+    comprobacion,
     tiempos: { segmentos: t1 - t0, total: performance.now() - t0 },
     nSegmentos: n,
   };

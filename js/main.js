@@ -10,7 +10,7 @@
 
 import { CONFIG, VERSION, COLORES } from './config.js';
 import { iniciarCamara, detenerCamara } from './camara.js';
-import { activarSensores, estadoSensores, arribaCamara, inclinacion } from './sensores.js';
+import { activarSensores, estadoSensores, arribaCamara, inclinacion, giroImagen, girarVector } from './sensores.js';
 import { prepararGris } from './vision/preparar.js';
 import { horizonteSensor } from './vision/manhattan.js';
 import { mmAPx } from './vision/geometria.js';
@@ -27,12 +27,15 @@ const lienzo = $('lienzo');
 const ctx = lienzo.getContext('2d');
 
 // --- Estado -------------------------------------------------------------------
-const AJUSTES_DEFECTO = { modo: 'A', rejilla: false, aristas: false, vivo: true, focalAuto: true, focalMM: CONFIG.focalDefectoMM };
+const AJUSTES_DEFECTO = { modo: 'A', rejilla: false, aristas: false, compararSensor: false, autoGiro: true, exportarOriginal: true, vivo: true, focalAuto: true, focalMM: CONFIG.focalDefectoMM };
 const estado = {
   origen: null,          // 'camara' | 'foto'
   congelado: false,
   fuente: null,          // <video> o <canvas> con el fotograma congelado / la foto
-  anchoF: 0, altoF: 0,
+  anchoF: 0, altoF: 0,   // tamaño de la imagen DERECHA (ya girada)
+  imagen: null,          // lo que se dibuja, analiza y exporta: la fuente girada para que la escena quede derecha
+  giro: 0,               // 0/90/180/270: cómo se sostiene el móvil (por gravedad)
+  giroImagen: 0,         // giro aplicado al fotograma en vivo actual
   resultado: null,       // lo que se dibuja ahora
   seleccion: null,       // índice de segmento (modo B)
   focalExif: null,
@@ -84,13 +87,13 @@ function focalFija() {
 
 function analizarEnWorker(calidad) {
   const lado = calidad === 'alto' ? CONFIG.ladoAnalisisAlto : CONFIG.ladoAnalisisVivo;
-  const g = prepararGris(estado.fuente, estado.anchoF, estado.altoF, lado);
+  const g = prepararGris(estado.imagen, estado.anchoF, estado.altoF, lado);
   const focal = focalFija();
   const opciones = {
     calidad,
     escala: g.escala,
     // con una foto de la galería, la inclinación actual del móvil no dice nada
-    arriba: estado.origen === 'camara' ? arribaCamara() : null,
+    arriba: estado.origen === 'camara' ? arribaImagen() : null,
     focalMM: focal ? focal.mm : null,
     fuenteFocal: focal ? focal.fuente : null,
   };
@@ -127,7 +130,7 @@ async function analisisAlto() {
     if (turno !== estado.turno) return;
     estado.aviso = null;
     if (r.familias.length === 0) {
-      const arriba = estado.origen === 'camara' ? arribaCamara() : null;
+      const arriba = estado.origen === 'camara' ? arribaImagen() : null;
       const focal = focalFija();
       const fpx = mmAPx(focal ? focal.mm : CONFIG.focalDefectoMM, estado.anchoF, estado.altoF);
       estado.resultado = guiasManuales(estado.anchoF, estado.altoF, arriba, fpx);
@@ -149,6 +152,7 @@ async function empezarCamara() {
   estado.congelado = false;
   estado.resultado = null;
   estado.seleccion = null;
+  estado.imagen = null;
   seguidor.reiniciar();
   mostrarApp();
   mostrarMensaje('Abriendo la cámara…');
@@ -167,15 +171,14 @@ async function empezarCamara() {
 
 function congelar() {
   if (estado.origen !== 'camara' || estado.congelado || !video.videoWidth) return;
-  const c = document.createElement('canvas');
-  c.width = video.videoWidth;
-  c.height = video.videoHeight;
-  c.getContext('2d').drawImage(video, 0, 0);
+  // se congela la imagen YA GIRADA (escena derecha)
+  const c = girarFuente(video, video.videoWidth, video.videoHeight, estado.giroImagen, document.createElement('canvas'));
+  estado.inclinacionCongelada = inclinacion(arribaImagen());
   estado.fuente = c;
+  estado.imagen = c;
   estado.anchoF = c.width;
   estado.altoF = c.height;
   estado.congelado = true;
-  estado.inclinacionCongelada = inclinacion(arribaCamara());
   video.pause();
   actualizarBotones();
   analisisAlto();
@@ -215,6 +218,7 @@ async function cargarFoto(archivo) {
     video.srcObject = null;
     estado.origen = 'foto';
     estado.fuente = c;
+    estado.imagen = c;
     estado.anchoF = c.width;
     estado.altoF = c.height;
     estado.congelado = true;
@@ -224,6 +228,28 @@ async function cargarFoto(archivo) {
   } catch {
     mostrarError('No se pudo abrir esa imagen. Prueba con una foto JPEG o PNG.');
   }
+}
+
+// --- Giro: la escena siempre derecha ---------------------------------------------
+const lienzoGiro = document.createElement('canvas');
+
+/** Dibuja la fuente girada `giro` grados (horario) en un lienzo y lo devuelve. */
+function girarFuente(fuente, w, h, giro, destino = lienzoGiro) {
+  const lateral = giro === 90 || giro === 270;
+  destino.width = lateral ? h : w;
+  destino.height = lateral ? w : h;
+  const c = destino.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  if (giro === 90) { c.translate(h, 0); c.rotate(Math.PI / 2); }
+  else if (giro === 180) { c.translate(w, h); c.rotate(Math.PI); }
+  else if (giro === 270) { c.translate(0, w); c.rotate(-Math.PI / 2); }
+  c.drawImage(fuente, 0, 0, w, h);
+  return destino;
+}
+
+/** "Arriba" del sensor en coordenadas de la imagen derecha. */
+function arribaImagen() {
+  return girarVector(arribaCamara(), estado.giroImagen);
 }
 
 // --- Dibujo -------------------------------------------------------------------
@@ -240,17 +266,38 @@ function bucle(t) {
   requestAnimationFrame(bucle);
   ajustarLienzo();
   const W = lienzo.width, H = lienzo.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
-  if (estado.fuente === video) {
-    estado.anchoF = video.videoWidth;
-    estado.altoF = video.videoHeight;
+  // ¿Cómo se sostiene el móvil? (funciona también con el bloqueo de rotación)
+  const giroNuevo = estado.ajustes.autoGiro ? giroImagen(estado.giro) : 0;
+  if (giroNuevo !== estado.giro) { estado.giro = giroNuevo; colocarHud(); }
+
+  if (estado.fuente === video && video.videoWidth) {
+    // en vivo, el fotograma se gira para que la escena quede derecha
+    estado.giroImagen = estado.giro;
+    estado.imagen = estado.giro ? girarFuente(video, video.videoWidth, video.videoHeight, estado.giro) : video;
+    const lateral = estado.giro === 90 || estado.giro === 270;
+    estado.anchoF = lateral ? video.videoHeight : video.videoWidth;
+    estado.altoF = lateral ? video.videoWidth : video.videoHeight;
+  } else if (estado.fuente !== video) {
+    estado.imagen = estado.fuente;
   }
-  if (estado.fuente && estado.anchoF) {
-    const s = Math.min(W / estado.anchoF, H / estado.altoF);
-    estado.T = { escala: s, ox: (W - estado.anchoF * s) / 2, oy: (H - estado.altoF * s) / 2 };
-    ctx.drawImage(estado.fuente, estado.T.ox, estado.T.oy, estado.anchoF * s, estado.altoF * s);
+
+  if (estado.imagen && estado.anchoF) {
+    // La imagen derecha se dibuja girada al revés: en pantalla se ve igual que
+    // la cámara, pero los textos y las guías quedan derechos para quien mira.
+    const lateral = estado.giro === 90 || estado.giro === 270;
+    const Wl = lateral ? H : W, Hl = lateral ? W : H;   // tamaño lógico
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate((-estado.giro * Math.PI) / 180);
+    ctx.translate(-Wl / 2, -Hl / 2);
+    estado.lienzoLogico = { Wl, Hl };
+
+    const s = Math.min(Wl / estado.anchoF, Hl / estado.altoF);
+    estado.T = { escala: s, ox: (Wl - estado.anchoF * s) / 2, oy: (Hl - estado.altoF * s) / 2 };
+    ctx.drawImage(estado.imagen, estado.T.ox, estado.T.oy, estado.anchoF * s, estado.altoF * s);
 
     // horizonte del sensor: en vivo se recalcula en cada fotograma
     let hs;
@@ -259,17 +306,22 @@ function bucle(t) {
         f: mmAPx(focalFija()?.mm || CONFIG.focalDefectoMM, estado.anchoF, estado.altoF),
         cx: estado.anchoF / 2, cy: estado.altoF / 2,
       };
-      hs = horizonteSensor(arribaCamara(), cam);
+      hs = horizonteSensor(arribaImagen(), cam);
     }
     const r = estado.resultado || VACIO;
     dibujarSuperposicion(ctx, r, estado.T, {
       modo: estado.ajustes.modo,
       rejilla: estado.ajustes.rejilla,
       aristas: estado.ajustes.aristas || (estado.ajustes.modo === 'B' && estado.congelado),
+      compararSensor: estado.ajustes.compararSensor,
       seleccion: estado.seleccion,
       g: window.devicePixelRatio || 1,
       horizonteSensor: hs,
+      ancho: Wl,
+      alto: Hl,
+      margenArriba: 96 * (window.devicePixelRatio || 1),
     });
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     if (estado.origen === 'camara' && !estado.congelado && estado.ajustes.vivo && !estado.analizando &&
         t - estado.ultimoAnalisis > 1000 / CONFIG.fpsAnalisis && video.readyState >= 2) {
@@ -279,10 +331,39 @@ function bucle(t) {
   if (t - ultimoIndicador > 250) { ultimoIndicador = t; actualizarIndicadores(); }
 }
 
+/** Píxel del lienzo → coordenadas lógicas (deshace el giro de la pantalla). */
+function aLogico(p) {
+  const W = lienzo.width, H = lienzo.height;
+  const { Wl, Hl } = estado.lienzoLogico || { Wl: W, Hl: H };
+  const a = (estado.giro * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+  const x = p[0] - W / 2, y = p[1] - H / 2;
+  return [x * c - y * sn + Wl / 2, x * sn + y * c + Hl / 2];
+}
+
+/**
+ * Los textos de arriba y el mensaje (el "HUD") giran con el móvil, en el espacio
+ * que deja libre la barra de botones. Los botones no giran (como en la app Cámara).
+ */
+function colocarHud() {
+  const hud = $('hud');
+  const app = $('app').getBoundingClientRect();
+  const barra = $('barra').getBoundingClientRect();
+  const lateral = estado.giro === 90 || estado.giro === 270;
+  hud.classList.toggle('girado', estado.giro !== 0);
+  if (!lateral) {
+    hud.style.cssText = `width:${app.width}px;height:${app.height}px;left:0;top:0;transform:rotate(${-estado.giro}deg)`;
+    return;
+  }
+  const libreW = app.width, libreH = Math.max(100, barra.top - app.top);
+  hud.style.cssText = `width:${libreH}px;height:${libreW}px;left:${(libreW - libreH) / 2}px;top:${(libreH - libreW) / 2}px;transform:rotate(${-estado.giro}deg)`;
+}
+window.addEventListener('resize', () => colocarHud());
+
 // --- Interfaz -----------------------------------------------------------------
 function mostrarApp() {
   $('inicio').hidden = true;
   $('app').hidden = false;
+  colocarHud();
 }
 
 function pintarMensaje(texto) { $('mensaje').textContent = texto; $('mensaje').hidden = !texto; }
@@ -298,7 +379,7 @@ function actualizarIndicadores() {
   if (estado.origen === 'foto') textoSensor = 'Foto de galería';
   else {
     const est = estadoSensores();
-    const inc = estado.congelado ? estado.inclinacionCongelada : inclinacion(arribaCamara());
+    const inc = estado.congelado ? estado.inclinacionCongelada : inclinacion(arribaImagen());
     if (inc) {
       const c = Math.abs(inc.cabeceo);
       textoSensor = c > CONFIG.umbralInclinacionCamara
@@ -331,7 +412,14 @@ function actualizarIndicadores() {
   // Focal (los milisegundos van a Ajustes)
   $('info').textContent = r && r.focalMM ? `Focal ≈ ${formato(r.focalMM, 0)} mm${r.fuenteFocal === 'por defecto' ? ' (supuesta)' : ''}` : '';
   const ms = r && r.tiempos ? Math.round(estado.congelado ? r.tiempos.total : estado.tiempoVivo || r.tiempos.total) : null;
-  $('tecnico').textContent = r ? `Análisis: ${ms ?? '—'} ms · ${r.segmentos.length / 4} aristas · focal ${r.fuenteFocal}` : '';
+  const comp = r && r.comprobacion ? r.comprobacion : {};
+  const partes = [];
+  if (comp.horizonteVsSensorGrados != null) partes.push(`horizonte vs. sensor ${formato(comp.horizonteVsSensorGrados)}°`);
+  if (comp.ortogonalidadGrados != null) partes.push(`ortogonalidad ±${formato(comp.ortogonalidadGrados)}°`);
+  const juicio = partes.length
+    ? (Math.max(comp.horizonteVsSensorGrados ?? 0, comp.ortogonalidadGrados ?? 0) < 2 ? ' → coherente' : Math.max(comp.horizonteVsSensorGrados ?? 0, comp.ortogonalidadGrados ?? 0) < 5 ? ' → aceptable' : ' → dudoso')
+    : '';
+  $('tecnico').textContent = r ? `Análisis: ${ms ?? '—'} ms · ${r.segmentos.length / 4} aristas · focal ${r.fuenteFocal}. Comprobación: ${partes.join(', ') || 'sin datos'}${juicio}` : '';
 
   // Resumen del encaje (solo modo B)
   const resumen = $('resumen');
@@ -363,6 +451,9 @@ function sincronizarAjustes() {
   $('modo-fijado').textContent = modoFijado ? `Modo ${modoFijado} fijado por el enlace del profesor.` : '';
   $('aj-rejilla').checked = a.rejilla;
   $('aj-aristas').checked = a.aristas;
+  $('aj-sensor-horizonte').checked = a.compararSensor;
+  $('aj-autogiro').checked = a.autoGiro;
+  $('aj-original').checked = a.exportarOriginal;
   $('aj-vivo').checked = a.vivo;
   $('aj-focal-auto').checked = a.focalAuto;
   $('aj-focal').value = a.focalMM;
@@ -393,11 +484,12 @@ $('btn-congelar').addEventListener('click', (e) => {
 });
 
 $('btn-exportar').addEventListener('click', async () => {
-  if (!estado.fuente || !estado.resultado) { mostrarMensaje('Nada que exportar todavía.'); return; }
-  const inc = estado.congelado ? estado.inclinacionCongelada : inclinacion(arribaCamara());
-  const r = await exportar(estado.fuente, estado.resultado, {
+  if (!estado.imagen || !estado.resultado) { mostrarMensaje('Nada que exportar todavía.'); return; }
+  const inc = estado.congelado ? estado.inclinacionCongelada : inclinacion(arribaImagen());
+  const r = await exportar(estado.imagen, estado.resultado, {
     modo: estado.ajustes.modo, origen: estado.origen,
-    rejilla: estado.ajustes.rejilla, aristas: estado.ajustes.aristas,
+    rejilla: estado.ajustes.rejilla, aristas: estado.ajustes.aristas, compararSensor: estado.ajustes.compararSensor,
+    incluirOriginal: estado.ajustes.exportarOriginal,
     inclinacion: estado.origen === 'camara' ? inc : null,
   });
   if (r === 'descargado') mostrarMensaje('Imagen y registro descargados.');
@@ -413,6 +505,9 @@ $('ajustes').addEventListener('change', (e) => {
   if (e.target.name === 'modo') { a.modo = e.target.value; estado.seleccion = null; }
   a.rejilla = $('aj-rejilla').checked;
   a.aristas = $('aj-aristas').checked;
+  a.compararSensor = $('aj-sensor-horizonte').checked;
+  a.autoGiro = $('aj-autogiro').checked;
+  a.exportarOriginal = $('aj-original').checked;
   a.vivo = $('aj-vivo').checked;
   a.focalAuto = $('aj-focal-auto').checked;
   a.focalMM = Number($('aj-focal').value);
@@ -428,6 +523,7 @@ $('aj-focal').addEventListener('input', () => { $('aj-focal-valor').textContent 
 instalarInteraccion(lienzo, {
   resultado: () => estado.resultado,
   transformacion: () => estado.T,
+  aLogico,
   editable: () => estado.congelado,
   modo: () => estado.ajustes.modo,
   seleccionar: (i) => { estado.seleccion = i; },
@@ -471,4 +567,5 @@ window.__depuracion = {
 };
 
 actualizarBotones();
+colocarHud();
 requestAnimationFrame(bucle);

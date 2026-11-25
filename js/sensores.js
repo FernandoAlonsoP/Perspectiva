@@ -90,3 +90,35 @@ export function inclinacion(arriba) {
   const alabeo = Math.atan2(arriba[0], -arriba[1]) / RAD;
   return { cabeceo, alabeo };
 }
+
+// --- Giro de la imagen según cómo se sostiene el móvil ---------------------------
+// Con el bloqueo de rotación (habitual en iPhone), la pantalla no gira aunque el
+// móvil esté en horizontal: la imagen y los textos quedan de lado. Con la gravedad
+// sabemos hacia dónde está "arriba" en la pantalla y giramos nosotros.
+
+/**
+ * Ángulo (0, 90, 180 o 270; sentido horario) que hay que girar el fotograma de
+ * la cámara para que la escena quede derecha. Mantiene el anterior si el móvil
+ * está casi plano o en una posición intermedia (histéresis).
+ */
+export function giroImagen(anterior = 0) {
+  if (!datosRecientes()) return anterior;
+  const b = ultimo.beta * RAD, g = ultimo.gamma * RAD;
+  const ux = -Math.sin(g) * Math.cos(b), uy = Math.sin(b);
+  const th = anguloPantalla() * RAD;
+  const sx = ux * Math.cos(th) - uy * Math.sin(th);
+  const sy = ux * Math.sin(th) + uy * Math.cos(th);
+  if (Math.hypot(sx, sy) < 0.5) return anterior;          // móvil casi plano
+  const phi = Math.atan2(sx, sy) / RAD;                   // 0 = arriba de la pantalla; 90 = derecha
+  const candidato = ((Math.round(phi / 90) * -90) % 360 + 360) % 360;
+  const resto = Math.abs(phi - Math.round(phi / 90) * 90);
+  if (candidato !== anterior && resto > 30) return anterior; // zona intermedia
+  return candidato;
+}
+
+/** Gira un vector de coordenadas de cámara (x, y de imagen) igual que la imagen. */
+export function girarVector(v, giro) {
+  if (!v || !giro) return v;
+  const a = giro * RAD, c = Math.cos(a), s = Math.sin(a);
+  return [v[0] * c - v[1] * s, v[0] * s + v[1] * c, v[2]];
+}

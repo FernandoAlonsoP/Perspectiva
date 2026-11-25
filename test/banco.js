@@ -57,7 +57,7 @@ for (const escena of soloGenerar ? [] : ESCENAS) {
         familias: r.familias.map((f) => `${f.tipo}(${f.nSegmentos}, L${f.longitudRel.toFixed(1)}, d${f.rectasDistintas}, %${(f.fraccion*100).toFixed(0)}, ${f.residualMedio.toFixed(2)}°)`),
         focalMM: +r.focalMM.toFixed(1), fuenteFocal: r.fuenteFocal,
         errorEjes: ev.ejes, errorHorizonte: ev.horizonte, horizonteFuente: r.horizonte?.fuente ?? null,
-        fiable: r.fiable, mensaje: r.mensaje,
+        fiable: r.fiable, mensaje: r.mensaje, comprobacion: r.comprobacion,
         segmentos: r.nSegmentos, ms: Math.round(r.tiempos.total),
         imagen,
       });

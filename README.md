@@ -21,11 +21,30 @@ No hay instalación, cuentas, servidor ni analítica. **Todo se procesa en el m�
 
 ### Qué se dibuja (jerarquía visual)
 
-1. **Horizonte** (amarillo). Si el sensor coincide, se indica con «✓ sensor»; si discrepa, el del sensor aparece aparte, en discontinuo.
+1. **Horizonte** (amarillo), el calculado a partir de la imagen. El del sensor solo aparece si no hay horizonte en la imagen, o si se activa «Comparar con el horizonte del sensor».
 2. **Puntos de fuga**: un círculo si caen en la pantalla y una flecha con la distancia si caen fuera.
-3. **Líneas de fuga**: como máximo 5 por familia horizontal. Cada una sale del punto de fuga, pasa por una arista real (resaltada) y llega al borde de la imagen.
+3. **Líneas de fuga**: como máximo 5 por familia horizontal. Cada una sale del punto de fuga, pasa por una arista real (resaltada) y llega al borde de la imagen. Son **afiladas**: gruesas cerca del observador, finas y transparentes al llegar al punto de fuga. Se prefieren aristas largas y alejadas del punto de fuga, porque las cercanas apenas lo confirman.
 4. **Verticales**: solo si convergen de forma visible (móvil inclinado). Con el móvil a plomo son paralelas y no se dibujan.
-5. Opcional, en Ajustes → Capas: todas las aristas detectadas y la rejilla.
+5. Opcional, en Ajustes → Capas: todas las aristas detectadas, la rejilla y la comparación con el sensor.
+
+Las etiquetas se recolocan para no pisarse.
+
+### Móvil en horizontal
+
+Con el bloqueo de rotación del iPhone, la pantalla no gira. La app usa la **gravedad** para saber cómo sostienes el móvil:
+- textos, etiquetas y guías se dibujan derechos;
+- la foto congelada y la exportada se guardan con la escena derecha;
+- los botones no giran, como en la app Cámara.
+
+Se puede desactivar en Ajustes.
+
+### Autocomprobación
+
+En Ajustes, al final, cada análisis muestra dos controles independientes:
+- el ángulo entre el horizonte de la imagen y el de la gravedad;
+- cuánto se apartan de 90° la vertical y las horizontales detectadas.
+
+Ninguno interviene en el cálculo. Por debajo de 2° el resultado se marca «coherente», hasta 5° «aceptable» y por encima «dudoso». En el banco sintético ambos valen 0,0–0,14°. También se guardan en el JSON.
 
 ### Modos (las dos condiciones del estudio)
 
@@ -71,7 +90,7 @@ node test/e2e.mjs        # recorre la app completa con una cámara falsa → cap
 node test/e2e.mjs salon vertical   # lo mismo con otra escena y en vertical
 ```
 
-### Resultado del banco (v0.2.0)
+### Resultado del banco (v0.3.0)
 
 Hay 10 escenas sintéticas: cubo en 1 punto; cubo en 2 puntos a 26 mm y a 16 mm; pasillo; calle; fachada vista desde abajo; calle con teleobjetivo de 50 mm; edificio con vegetación delante; salón casi frontal de poco contraste; y vegetación sin arquitectura. Cada una se analiza en calidad vivo y alta, con y sin sensor: **38/38 superadas**.
 
@@ -154,6 +173,11 @@ Este desarrollo forma parte de una investigación sobre co-autoría con agentes 
 | 2026-11-25 | v0.2.0 · No dibujar verticales paralelas | Con el móvil a plomo no convergen; en la prueba real llenaban la imagen de rayas discontinuas | Agente, a partir de las capturas |
 | 2026-11-25 | v0.2.0 · Búsqueda guiada de la tercera dirección | En la prueba real (interior frontal) no aparecía la familia de profundidad, la más didáctica. Sin las fotos originales no se ha podido confirmar que esta sea la causa | Agente |
 | 2026-11-25 | v0.2.0 · Un solo horizonte si escena y sensor coinciden; un solo mensaje abajo | Dos líneas y dos etiquetas casi superpuestas; mensajes solapados | Agente, a partir de las capturas |
+| 2026-11-25 | v0.3.0 · Líneas de fuga afiladas hacia el punto de fuga | Propuesta del profesor tras la 2.ª prueba real: refuerza la lectura de profundidad | Profesor |
+| 2026-11-25 | v0.3.0 · Giro por gravedad (también con bloqueo de rotación) | Fotos en horizontal salían de lado; el profesor pidió «la app debería girar» | Profesor (petición), agente (solución) |
+| 2026-11-25 | v0.3.0 · Aristas ambiguas a la familia con la que mejor encajan; las compatibles con la vertical del sensor salen de las horizontales | En una prueba real, una vertical que cruzaba el punto de fuga central se dibujaba como línea de fuga | Agente, a partir de las capturas |
+| 2026-11-25 | v0.3.0 · Horizonte del sensor oculto por defecto | Discrepaba 30–50 px del de la imagen (depende de la focal) y dos horizontes confunden al alumno | Agente |
+| 2026-11-25 | v0.3.0 · Autocomprobación geométrica y exportación de la foto original | El profesor no sabía «hasta qué punto está haciendo bien el análisis»; la foto limpia permite reanalizar y afinar | Agente |
 | 2026-11-25 | Sin cámara simulada en móvil: queda pendiente probar en iPhone y Android reales | No se puede verificar desde el entorno de desarrollo | — |
 
 ## Referencias técnicas

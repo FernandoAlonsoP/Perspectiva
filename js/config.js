@@ -6,7 +6,7 @@
 // reproducir y comparar resultados (necesario para el estudio docente).
 // =============================================================================
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 
 export const CONFIG = {
   // --- Imagen de análisis -------------------------------------------------

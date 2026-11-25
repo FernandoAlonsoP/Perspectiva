@@ -36,6 +36,7 @@ export function construirRegistro(r, contexto) {
       mensaje: r.mensaje || '',
       segmentosDetectados: r.segmentos.length / 4,
       tiempoMs: r.tiempos ? Math.round(r.tiempos.total) : null,
+      comprobacion: r.comprobacion || null,   // horizonte vs. sensor y ortogonalidad, en grados
     },
     puntosFuga: r.familias.map((f) => {
       const c = aCartesiano(f.punto);
@@ -69,7 +70,7 @@ async function construirImagen(fuente, r, contexto) {
   const ctx = c.getContext('2d');
   ctx.drawImage(fuente, 0, 0, c.width, c.height);
   dibujarSuperposicion(ctx, r, { escala: s, ox: 0, oy: 0 }, {
-    modo: contexto.modo, rejilla: contexto.rejilla, aristas: contexto.aristas,
+    modo: contexto.modo, rejilla: contexto.rejilla, aristas: contexto.aristas, compararSensor: contexto.compararSensor,
     g: Math.max(1.5, Math.min(c.width, c.height) / 600), seleccion: null,
   });
   return new Promise((ok) => c.toBlob(ok, 'image/png'));
@@ -80,6 +81,14 @@ export async function exportar(fuente, r, contexto) {
   const png = await construirImagen(fuente, r, contexto);
   const json = new Blob([JSON.stringify(construirRegistro(r, contexto), null, 2)], { type: 'application/json' });
   const archivos = [new File([png], `${nombre}.png`, { type: 'image/png' }), new File([json], `${nombre}.json`, { type: 'application/json' })];
+  if (contexto.incluirOriginal) {
+    // la foto limpia, sin superposición (para comparar, o para que el profesor la reanalice)
+    const c = document.createElement('canvas');
+    c.width = Math.round(r.ancho); c.height = Math.round(r.alto);
+    c.getContext('2d').drawImage(fuente, 0, 0, c.width, c.height);
+    const jpg = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.92));
+    archivos.push(new File([jpg], `${nombre}-original.jpg`, { type: 'image/jpeg' }));
+  }
 
   // En el móvil, la hoja de "Compartir" permite guardar en Fotos/Archivos o enviar al profesor
   if (navigator.canShare && navigator.canShare({ files: archivos })) {

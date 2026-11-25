@@ -37,6 +37,7 @@
     <video id="video" playsinline muted autoplay></video>
     <canvas id="lienzo"></canvas>
 
+    <div id="hud">
     <header class="superior">
       <div class="pildora" id="privacidad">🔒 Todo en tu móvil</div>
       <div class="pildora" id="sensor"></div>
@@ -45,8 +46,9 @@
     </header>
 
     <div id="mensaje" class="mensaje" hidden></div>
+    </div>
 
-    <nav class="barra">
+    <nav class="barra" id="barra">
       <button id="btn-foto" class="boton-barra" aria-label="Cargar foto de la galería">Foto</button>
       <button id="btn-congelar" class="boton-barra central" data-accion="congelar">Congelar</button>
       <button id="btn-exportar" class="boton-barra" aria-label="Exportar imagen y registro">Exportar</button>
@@ -71,7 +73,14 @@
           <p class="nota">Por defecto solo se ven el horizonte, los puntos de fuga y unas pocas líneas de fuga por familia.</p>
           <label class="opcion"><input type="checkbox" id="aj-aristas"> <span>Todas las aristas detectadas (finas; en gris las que no encajan)</span></label>
           <label class="opcion"><input type="checkbox" id="aj-rejilla"> <span>Rejilla de perspectiva (rayos desde cada punto de fuga)</span></label>
+          <label class="opcion"><input type="checkbox" id="aj-sensor-horizonte"> <span>Comparar con el horizonte del sensor (línea discontinua)</span></label>
+          <label class="opcion"><input type="checkbox" id="aj-autogiro"> <span>Girar textos y fotos al poner el móvil en horizontal (aunque esté bloqueada la rotación)</span></label>
           <label class="opcion"><input type="checkbox" id="aj-vivo"> <span>Analizar en vivo (desactívalo si el móvil se calienta o va lento)</span></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Exportar</legend>
+          <label class="opcion"><input type="checkbox" id="aj-original"> <span>Guardar también la foto sin líneas (útil para comparar y para el profesor)</span></label>
         </fieldset>
 
         <fieldset>

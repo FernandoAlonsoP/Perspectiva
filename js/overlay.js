@@ -59,12 +59,23 @@ function cartesianoLienzo(T, P, limite) {
 
 function linea(ctx, a, b) { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
 
+// Dimensiones lógicas del lienzo y cajas de etiquetas ya colocadas (para no solaparlas)
+let lienzoW = 0, lienzoH = 0, ocupadas = [], margenArriba = 0;
+
 function etiqueta(ctx, texto, x, y, color, g, alinear = 'left') {
   ctx.font = `600 ${Math.round(13 * g)}px system-ui, sans-serif`;
   const w = ctx.measureText(texto).width, h = 18 * g, pad = 5 * g;
   let bx = alinear === 'center' ? x - w / 2 - pad : alinear === 'right' ? x - w - 2 * pad : x;
-  bx = Math.max(2, Math.min(ctx.canvas.width - w - 2 * pad - 2, bx));
-  const by = Math.max(2, Math.min(ctx.canvas.height - h - 2, y - h / 2));
+  bx = Math.max(2, Math.min(lienzoW - w - 2 * pad - 2, bx));
+  let by = Math.max(2, Math.min(lienzoH - h - 2, y - h / 2));
+  // si choca con otra etiqueta, se desplaza hacia abajo (o hacia arriba si no cabe)
+  const choca = (yy) => ocupadas.some((o) => bx < o.x + o.w && bx + w + 2 * pad > o.x && yy < o.y + o.h && yy + h > o.y);
+  for (let k = 1; k <= 6 && choca(by); k++) {
+    const abajo = by + k * (h + 3 * g), arriba = by - k * (h + 3 * g);
+    if (abajo + h < lienzoH && !choca(abajo)) { by = abajo; break; }
+    if (arriba > 0 && !choca(arriba)) { by = arriba; break; }
+  }
+  ocupadas.push({ x: bx, y: by, w: w + 2 * pad, h });
   ctx.fillStyle = 'rgba(0,0,0,0.65)';
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(bx, by, w + 2 * pad, h, 4 * g); else ctx.rect(bx, by, w + 2 * pad, h);
@@ -100,7 +111,13 @@ export function representativas(r, k, n = CONFIG.lineasPorFamilia) {
     // centro de la imagen indica "dónde" está la línea dentro del abanico
     const l = [P[1] - my * P[2], mx * P[2] - P[0], P[0] * my - P[1] * mx];
     const d = (l[0] * cx + l[1] * cy + l[2]) / (Math.hypot(l[0], l[1]) || 1);
-    cand.push({ i, L: Math.hypot(x2 - x1, y2 - y1), d });
+    // una arista pegada al punto de fuga apenas lo confirma: pesa menos
+    let peso = 1;
+    if (Math.abs(P[2]) > 1e-12) {
+      const dv = Math.hypot(mx - P[0] / P[2], my - P[1] / P[2]);
+      peso = Math.min(1, dv / (0.25 * Math.hypot(r.ancho, r.alto)));
+    }
+    cand.push({ i, L: Math.hypot(x2 - x1, y2 - y1) * peso, d });
   }
   if (!cand.length) return [];
   const ds = cand.map((c) => c.d);
@@ -137,6 +154,41 @@ function lineaConHalo(ctx, a, b, color, ancho, g, alfa = 1) {
   ctx.globalAlpha = 1;
 }
 
+function conAlfa(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/**
+ * Línea de fuga AFILADA: gruesa y opaca en el extremo cercano, fina y
+ * transparente al llegar al punto de fuga, como se dibuja a mano. Refuerza la
+ * lectura de profundidad: la línea "se aleja" hacia el horizonte.
+ */
+function lineaAfilada(ctx, desde, hasta, color, anchoCerca, anchoLejos, g) {
+  const dx = hasta[0] - desde[0], dy = hasta[1] - desde[1];
+  const L = Math.hypot(dx, dy) || 1;
+  const nx = -dy / L, ny = dx / L;
+  const poligono = (w1, w0) => {
+    ctx.beginPath();
+    ctx.moveTo(desde[0] + nx * w1 / 2, desde[1] + ny * w1 / 2);
+    ctx.lineTo(hasta[0] + nx * w0 / 2, hasta[1] + ny * w0 / 2);
+    ctx.lineTo(hasta[0] - nx * w0 / 2, hasta[1] - ny * w0 / 2);
+    ctx.lineTo(desde[0] - nx * w1 / 2, desde[1] - ny * w1 / 2);
+    ctx.closePath();
+    ctx.fill();
+  };
+  const halo = ctx.createLinearGradient(desde[0], desde[1], hasta[0], hasta[1]);
+  halo.addColorStop(0, 'rgba(0,0,0,0.5)');
+  halo.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = halo;
+  poligono(anchoCerca + 2.5 * g, anchoLejos + 1.2 * g);
+  const grad = ctx.createLinearGradient(desde[0], desde[1], hasta[0], hasta[1]);
+  grad.addColorStop(0, conAlfa(color, 1));
+  grad.addColorStop(1, conAlfa(color, 0.35));
+  ctx.fillStyle = grad;
+  poligono(anchoCerca, anchoLejos);
+}
+
 /** Distancia (en anchos de imagen) del punto de fuga al centro; Infinity si está en el infinito. */
 export function distanciaAnchos(r, P) {
   if (Math.abs(P[2]) < 1e-12) return Infinity;
@@ -153,10 +205,13 @@ export function distanciaAnchos(r, P) {
  * @param ctx  contexto 2D
  * @param r    resultado del análisis (o del seguimiento / edición manual)
  * @param T    transformación imagen → lienzo
- * @param op   { modo: 'A'|'B', rejilla, aristas, seleccion, g (grosor: 1 = 1 px CSS), horizonteSensor }
+ * @param op   { modo: 'A'|'B', rejilla, aristas, compararSensor, seleccion, g (grosor: 1 = 1 px CSS),
+ *               horizonteSensor, ancho, alto (tamaño lógico del lienzo si está girado) }
  */
 export function dibujarSuperposicion(ctx, r, T, op = {}) {
-  const W = ctx.canvas.width, H = ctx.canvas.height;
+  const W = op.ancho || ctx.canvas.width, H = op.alto || ctx.canvas.height;
+  lienzoW = W; lienzoH = H; ocupadas = [];
+  margenArriba = op.margenArriba || 0;   // espacio ocupado por los textos de arriba de la app
   const g = op.g || Math.max(1, Math.min(W, H) / 700);
   const limite = 1e6;
   etiquetarFamilias(r.familias);
@@ -202,7 +257,7 @@ export function dibujarSuperposicion(ctx, r, T, op = {}) {
         // el rayo sale del punto de fuga y llega hasta el borde de la imagen
         let t = salidaRayo(vp, u, marco);
         if (!isFinite(t) || t < dl) t = dl;
-        lineaConHalo(ctx, vp, [vp[0] + u[0] * t, vp[1] + u[1] * t], f.color, 2 * g, g);
+        lineaAfilada(ctx, [vp[0] + u[0] * t, vp[1] + u[1] * t], vp, f.color, 3.2 * g, 0.4 * g, g);
       } else {
         // punto en el infinito: líneas paralelas, más discretas
         const l = [a[1] - b[1], b[0] - a[0], a[0] * b[1] - a[1] * b[0]];
@@ -223,7 +278,7 @@ export function dibujarSuperposicion(ctx, r, T, op = {}) {
     const yEn = (l, x) => { const m = rectaLienzo(T, l); return Math.abs(m[1]) < 1e-12 ? Infinity : -(m[0] * x + m[2]) / m[1]; };
     coinciden = [marco[0], marco[2]].every((x) => Math.abs(yEn(r.horizonte.linea, x) - yEn(hs, x)) < 14 * g);
   }
-  if (pSensor && !coinciden) {
+  if (pSensor && (!pEscena || (op.compararSensor && !coinciden))) {
     ctx.setLineDash([10 * g, 8 * g]);
     lineaConHalo(ctx, pSensor[0], pSensor[1], COLORES.sensor, 1.5 * g, g, 0.85);
     ctx.setLineDash([]);
@@ -233,7 +288,7 @@ export function dibujarSuperposicion(ctx, r, T, op = {}) {
   if (pEscena) {
     lineaConHalo(ctx, pEscena[0], pEscena[1], COLORES.horizonte, 2.5 * g, g);
     const izq = pEscena[0][0] < pEscena[1][0] ? pEscena[0] : pEscena[1];
-    const extra = r.horizonte.manual ? ' (ajustado a mano)' : coinciden ? ' ✓ sensor' : r.horizonte.fuente.startsWith('estimado') ? ' (estimado)' : '';
+    const extra = r.horizonte.manual ? ' (ajustado a mano)' : op.compararSensor && coinciden ? ' ✓ sensor' : r.horizonte.fuente.startsWith('estimado') ? ' (estimado)' : '';
     etiqueta(ctx, `Horizonte${extra}`, izq[0] + 8 * g, izq[1] - 16 * g, COLORES.horizonte, g);
   }
 
@@ -292,7 +347,7 @@ function dibujarPuntoFuga(ctx, r, T, f, W, H, g, limite) {
     const n = Math.hypot(d[0], d[1]) || 1;
     const ux = d[0] / n, uy = d[1] / n;
     const tx = ux > 0 ? (W - m - C[0]) / ux : ux < 0 ? (m - C[0]) / ux : Infinity;
-    const ty = uy > 0 ? (H - m - C[1]) / uy : uy < 0 ? (m - C[1]) / uy : Infinity;
+    const ty = uy > 0 ? (H - m - C[1]) / uy : uy < 0 ? (Math.max(m, margenArriba) - C[1]) / uy : Infinity;
     const t = Math.min(tx, ty);
     const x = C[0] + ux * t, y = C[1] + uy * t;
     const s = 14 * g;

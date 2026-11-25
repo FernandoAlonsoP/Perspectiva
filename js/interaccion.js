@@ -17,9 +17,11 @@ export function instalarInteraccion(lienzo, app) {
   let arrastre = null;
   const dpr = () => window.devicePixelRatio || 1;
 
+  // píxel del lienzo, ya en coordenadas lógicas (deshecho el giro de la pantalla)
   const aLienzo = (e) => {
     const rect = lienzo.getBoundingClientRect();
-    return [(e.clientX - rect.left) * dpr(), (e.clientY - rect.top) * dpr()];
+    const p = [(e.clientX - rect.left) * dpr(), (e.clientY - rect.top) * dpr()];
+    return app.aLogico ? app.aLogico(p) : p;
   };
   const aImagen = (T, p) => [(p[0] - T.ox) / T.escala, (p[1] - T.oy) / T.escala];
 
