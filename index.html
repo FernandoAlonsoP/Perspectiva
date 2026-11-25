@@ -19,23 +19,54 @@
   <!-- Pantalla de inicio -->
   <section id="inicio">
     <div class="inicio-contenido">
-      <!-- Logotipo oficial: img/logo-unav.svg (o .png). Si no existe, se muestra el texto. -->
-      <img id="logo-unav" class="logo" src="img/logo-unav.svg" data-alternativo="img/logo-unav.png" alt="Universidad de Navarra" hidden>
-      <p class="marca" id="marca-texto">Universidad de Navarra</p>
-      <h1>Perspectiva</h1>
-      <p class="asignatura">Laboratorio de Geometría y Forma</p>
-      <p class="subtitulo">Apunta a un edificio, una calle o un interior y verás sus <strong>puntos de fuga</strong> y su <strong>horizonte</strong>.</p>
+
+      <header class="inicio-cabecera">
+        <img id="logo-unav" class="logo" src="img/logo-unav.png" alt="Universidad de Navarra" hidden>
+        <p class="marca" id="marca-texto">Universidad de Navarra</p>
+        <p class="inicio-asignatura">Laboratorio de<br>Geometría y Forma</p>
+      </header>
+
+      <div class="portada">
+        <!-- Dibujo de perspectiva de dos puntos: horizonte, dos puntos de fuga y una caja -->
+        <svg class="dibujo" viewBox="0 20 360 186" role="img" aria-label="Esquema de perspectiva con dos puntos de fuga sobre la línea del horizonte">
+          <g class="rayos">
+            <path class="r-rojo" pathLength="1" d="M16.0 58.0 L172.0 104.0 M16.0 58.0 L172.0 186.0 M16.0 58.0 L256.0 81.5 M16.0 58.0 L256.0 123.5" />
+            <path class="r-azul" pathLength="1" d="M344.0 58.0 L172.0 104.0 M344.0 58.0 L172.0 186.0 M344.0 58.0 L112.0 86.3 M344.0 58.0 L112.0 136.8" />
+          </g>
+          <path class="horizonte" pathLength="1" d="M0 58 H360" />
+          <g class="caja">
+            <path class="cara" d="M172.0 104.0 L112.0 86.3 L197.9 75.8 L256.0 81.5 Z" />
+            <path class="c-rojo" pathLength="1" d="M172.0 104.0 L112.0 86.3 M172.0 186.0 L112.0 136.8 M256.0 81.5 L197.9 75.8" />
+            <path class="c-azul" pathLength="1" d="M172.0 104.0 L256.0 81.5 M172.0 186.0 L256.0 123.5 M112.0 86.3 L197.9 75.8" />
+            <path class="c-verde" pathLength="1" d="M172.0 104.0 L172.0 186.0 M112.0 86.3 L112.0 136.8 M256.0 81.5 L256.0 123.5" />
+          </g>
+          <circle class="pf pf-rojo" cx="16" cy="58" r="5.5" />
+          <circle class="pf pf-azul" cx="344" cy="58" r="5.5" />
+          <text class="rotulo-dibujo" x="16" y="78" text-anchor="start">PF1</text>
+          <text class="rotulo-dibujo" x="344" y="78" text-anchor="end">PF2</text>
+          <text class="rotulo-dibujo hz" x="180" y="50" text-anchor="middle">horizonte</text>
+        </svg>
+
+        <p class="antetitulo">Herramienta docente de dibujo</p>
+        <h1>Perspectiva</h1>
+        <p class="lema">Descubre los <em>puntos de fuga</em> y el <em>horizonte</em> de cualquier espacio con la cámara de tu móvil.</p>
+      </div>
+
       <ul class="leyenda">
-        <li><span class="punto" data-color="0"></span><span class="punto" data-color="1"></span> Familias de líneas horizontales y su punto de fuga</li>
-        <li><span class="punto" data-color="vertical"></span> Verticales</li>
-        <li><span class="punto" data-color="horizonte"></span> Línea del horizonte (altura de tus ojos)</li>
+        <li><span class="punto" data-color="0"></span><span class="punto" data-color="1"></span>Puntos de fuga</li>
+        <li><span class="punto" data-color="vertical"></span>Verticales</li>
+        <li><span class="raya" data-color="horizonte"></span>Horizonte</li>
       </ul>
-      <button id="btn-empezar" class="boton principal">Empezar con la cámara</button>
-      <button id="btn-foto-inicio" class="boton">Analizar una foto</button>
-      <p class="privacidad">Todo se procesa en tu móvil. Ninguna imagen sale del dispositivo.</p>
-      <p class="nota">Te pedirá permiso para la cámara y, en iPhone, para el sensor de movimiento (sirve para saber si inclinas el móvil).</p>
+
+      <div class="acciones">
+        <button id="btn-empezar" class="boton principal">Empezar con la cámara</button>
+        <button id="btn-foto-inicio" class="boton">Analizar una foto</button>
+        <p class="privacidad">Todo se procesa en tu móvil. Ninguna imagen sale del dispositivo.</p>
+        <p class="nota">Te pedirá permiso para la cámara y, en iPhone, para el sensor de movimiento.</p>
+      </div>
+
       <footer class="creditos">
-        <p>© 2026 Carlos Naya y Fernando Alonso<br>Profesores de la Universidad de Navarra</p>
+        <p>© 2026 Carlos Naya y Fernando Alonso · Profesores de la Universidad de Navarra</p>
         <p class="ia">Desarrollada con la asistencia de Claude Opus 5.5 (Anthropic)</p>
       </footer>
     </div>

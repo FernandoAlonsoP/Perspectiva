@@ -636,15 +636,12 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   navigator.serviceWorker.register('./sw.js').catch(() => { /* sin modo sin conexión */ });
 }
 
-// Logotipo de la Universidad: se muestra si el archivo existe (svg o png); si no, queda el texto
+// Logotipo de la Universidad (img/logo-unav.png); si no carga, queda el texto
 {
   const logo = $('logo-unav');
-  logo.addEventListener('load', () => { logo.hidden = false; $('marca-texto').hidden = true; });
-  logo.addEventListener('error', () => {
-    const alt = logo.dataset.alternativo;
-    if (alt && !logo.src.endsWith(alt)) logo.src = alt;
-  });
-  if (logo.complete && logo.naturalWidth) { logo.hidden = false; $('marca-texto').hidden = true; }
+  const mostrar = () => { logo.hidden = false; $('marca-texto').hidden = true; };
+  logo.addEventListener('load', mostrar);
+  if (logo.complete && logo.naturalWidth) mostrar();
 }
 
 // colores en la leyenda de la pantalla de inicio

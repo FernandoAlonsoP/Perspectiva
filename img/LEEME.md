@@ -1,10 +1,5 @@
 # Logotipo de la Universidad de Navarra
 
-Coloca aquí el logotipo **oficial** con uno de estos nombres:
+`logo-unav.png` es el logotipo oficial facilitado por los autores (versión negro sobre blanco), convertido a **negativo**: blanco sobre fondo transparente, para el fondo oscuro de la app. La conversión solo invierte el tono y usa la luminancia como transparencia; no altera la forma, las proporciones ni la tipografía. Se recortaron los márgenes blancos.
 
-- `logo-unav.svg` (preferible), o
-- `logo-unav.png` (fondo transparente, al menos 400 px de alto)
-
-La pantalla de inicio tiene fondo negro: usa la **versión en negativo (blanca)** del logotipo, según las normas de identidad corporativa de la Universidad.
-
-Mientras no haya archivo, la app muestra el texto «Universidad de Navarra».
+Para cambiarlo, sustituye `logo-unav.png` (PNG con fondo transparente, versión en negativo, según las normas de identidad corporativa de la Universidad). Si el archivo no carga, la app muestra el texto «Universidad de Navarra».

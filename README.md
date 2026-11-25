@@ -168,7 +168,7 @@ Son unas 2.200 líneas, sin dependencias externas ni paso de compilación. Pesa 
 - **Autores:** Carlos Naya y Fernando Alonso, profesores de la Universidad de Navarra.
 - **Contexto:** asignatura *Laboratorio de Geometría y Forma* (expresión gráfica arquitectónica).
 - **Desarrollo asistido por IA:** el código se escribió con la asistencia de Claude Opus 5.5 (Anthropic), a partir de los encargos, las pruebas en el aula y las correcciones de los autores. El registro de decisiones de abajo documenta ese proceso.
-- **Logotipo:** la pantalla de inicio muestra el logotipo oficial si existe `img/logo-unav.svg` (o `.png`); si no, el texto «Universidad de Navarra». Hay que usar el archivo oficial en negativo (blanco), según las normas de identidad corporativa (ver `img/LEEME.md`). En el resto de la app la marca aparece como texto: rótulo discreto, pie de las imágenes exportadas, «Acerca de» y JSON.
+- **Logotipo:** la pantalla de inicio muestra el logotipo oficial (`img/logo-unav.png`), en negativo para el fondo oscuro (ver `img/LEEME.md`). En el resto de la app la marca aparece como texto: rótulo discreto, pie de las imágenes exportadas, «Acerca de» y JSON.
 
 ## Registro de decisiones técnicas
 
@@ -199,6 +199,8 @@ Este desarrollo forma parte de una investigación sobre co-autoría con agentes 
 | 2026-11-25 | v0.4.0 · Marca institucional discreta y créditos (autores, Universidad de Navarra, asistencia de IA) | Petición de los autores; reconocer la asistencia de IA es coherente con la investigación sobre co-autoría | Profesor |
 | 2026-11-25 | v0.4.1 · Exportar = exactamente lo que se ve en pantalla; por defecto un solo archivo (foto original y JSON, opcionales; JSON forzable con `?registro=1`) | El profesor exportó y obtuvo el encuadre automático «foto + fugas» y tres archivos en vez de lo que veía | Profesor (diagnóstico), agente (solución) |
 | 2026-11-25 | v0.4.2 · La foto sin líneas vuelve a exportarse por defecto; hueco para el logotipo oficial en el inicio | Petición del profesor. El logotipo no se ha recreado ni descargado: debe ser el archivo oficial | Profesor |
+| 2026-11-25 | v0.5.0 · Rediseño de la pantalla de inicio: cabecera institucional (logotipo + asignatura), dibujo de perspectiva de dos puntos animado con los colores de la app, título con antetítulo, leyenda en etiquetas y botones abajo | Petición del profesor: «mejorar la composición del título y la parte de arriba, un toque más diseñado» | Profesor (petición), agente (diseño) |
+| 2026-11-25 | v0.5.0 · Logotipo oficial en negativo | Facilitado por el profesor en negro sobre blanco; solo se ha invertido, sin redibujar | Profesor |
 | 2026-11-25 | Sin cámara simulada en móvil: queda pendiente probar en iPhone y Android reales | No se puede verificar desde el entorno de desarrollo | — |
 
 ## Referencias técnicas

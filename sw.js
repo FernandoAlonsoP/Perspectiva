@@ -4,9 +4,9 @@
 // Al publicar una versión nueva, cambiar CACHE para que los móviles la descarguen.
 // =============================================================================
 
-const CACHE = 'perspectiva-0.4.2';
+const CACHE = 'perspectiva-0.5.0';
 const ARCHIVOS = [
-  './', './index.html', './css/app.css', './manifest.webmanifest', './icono.svg', './icono-180.png', './icono-512.png',
+  './', './index.html', './css/app.css', './manifest.webmanifest', './icono.svg', './icono-180.png', './icono-512.png', './img/logo-unav.png',
   './js/main.js', './js/config.js', './js/camara.js', './js/sensores.js', './js/overlay.js', './js/interaccion.js',
   './js/edicion.js', './js/seguimiento.js', './js/exportar.js', './js/exif.js',
   './js/vision/worker.js', './js/vision/analisis.js', './js/vision/segmentos.js', './js/vision/fuga.js',
