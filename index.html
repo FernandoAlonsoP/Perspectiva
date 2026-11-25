@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Perspectiva</title>
+  <meta name="description" content="Ver los puntos de fuga y el horizonte de una escena real con la cámara del móvil.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icono-180.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <!-- Pantalla de inicio -->
+  <section id="inicio">
+    <div class="inicio-contenido">
+      <h1>Perspectiva</h1>
+      <p class="subtitulo">Apunta a un edificio, una calle o un interior y verás sus <strong>puntos de fuga</strong> y su <strong>horizonte</strong>.</p>
+      <ul class="leyenda">
+        <li><span class="punto" data-color="0"></span><span class="punto" data-color="1"></span> Familias de líneas horizontales y su punto de fuga</li>
+        <li><span class="punto" data-color="vertical"></span> Verticales</li>
+        <li><span class="punto" data-color="horizonte"></span> Línea del horizonte (altura de tus ojos)</li>
+      </ul>
+      <button id="btn-empezar" class="boton principal">Empezar con la cámara</button>
+      <button id="btn-foto-inicio" class="boton">Analizar una foto</button>
+      <p class="privacidad">Todo se procesa en tu móvil. Ninguna imagen sale del dispositivo.</p>
+      <p class="nota">Te pedirá permiso para la cámara y, en iPhone, para el sensor de movimiento (sirve para saber si inclinas el móvil).</p>
+    </div>
+  </section>
+
+  <!-- App -->
+  <main id="app" hidden>
+    <video id="video" playsinline muted autoplay></video>
+    <canvas id="lienzo"></canvas>
+
+    <header class="superior">
+      <div class="pildora" id="privacidad">Procesado en tu móvil · sin subir imágenes</div>
+      <div class="pildora" id="sensor"></div>
+      <div class="pildora tenue" id="info"></div>
+      <div id="resumen" class="resumen" hidden></div>
+    </header>
+
+    <div id="mensaje" class="mensaje" hidden></div>
+    <div id="pista-edicion" class="pista" hidden>Arrastra un punto de fuga o el horizonte para explorar el encaje.</div>
+
+    <nav class="barra">
+      <button id="btn-foto" class="boton-barra" aria-label="Cargar foto de la galería">Foto</button>
+      <button id="btn-congelar" class="boton-barra central" data-accion="congelar">Congelar</button>
+      <button id="btn-exportar" class="boton-barra" aria-label="Exportar imagen y registro">Exportar</button>
+      <button id="btn-ajustes" class="boton-barra" aria-label="Ajustes">Ajustes</button>
+    </nav>
+
+    <input type="file" id="archivo" accept="image/*" hidden>
+
+    <dialog id="ajustes">
+      <form method="dialog" onsubmit="return false">
+        <h2>Ajustes</h2>
+
+        <fieldset id="fila-modo">
+          <legend>Modo</legend>
+          <label class="opcion"><input type="radio" name="modo" value="A"> <span><strong>A · Solo muestra</strong><br><small>Guías de perspectiva, sin cifras de error.</small></span></label>
+          <label class="opcion"><input type="radio" name="modo" value="B"> <span><strong>B · Muestra + desviación</strong><br><small>Toca una línea (en imagen congelada) para ver cuántos grados se desvía de su punto de fuga.</small></span></label>
+        </fieldset>
+        <p id="modo-fijado" class="nota" hidden></p>
+
+        <fieldset>
+          <legend>Dibujo</legend>
+          <label class="opcion"><input type="checkbox" id="aj-rejilla"> <span>Rejilla de perspectiva (rayos desde cada punto de fuga)</span></label>
+          <label class="opcion"><input type="checkbox" id="aj-sueltos"> <span>Mostrar líneas detectadas que no encajan en ninguna familia</span></label>
+          <label class="opcion"><input type="checkbox" id="aj-vivo"> <span>Analizar en vivo (desactívalo si el móvil se calienta o va lento)</span></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Focal de la cámara</legend>
+          <label class="opcion"><input type="checkbox" id="aj-focal-auto"> <span>Automática (se estima de la escena o de la foto)</span></label>
+          <label class="deslizador">Manual: <input type="range" id="aj-focal" min="13" max="120" step="1"> <output id="aj-focal-valor"></output></label>
+          <p class="nota">Equivalente en 35 mm. La cámara principal de un móvil suele rondar 24–28 mm.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Sensor de inclinación</legend>
+          <p>Estado: <span id="estado-sensores"></span></p>
+          <button type="button" id="btn-sensores" class="boton">Activar sensores</button>
+        </fieldset>
+
+        <p class="privacidad">Todo se procesa en tu móvil. Ninguna imagen sale del dispositivo. La app no usa cuentas ni analítica.</p>
+        <p class="nota" id="version"></p>
+        <button type="button" id="btn-cerrar-ajustes" class="boton principal">Cerrar</button>
+      </form>
+    </dialog>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

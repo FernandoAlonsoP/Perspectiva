@@ -1,0 +1,17 @@
+{
+  "name": "Perspectiva — puntos de fuga con la cámara",
+  "short_name": "Perspectiva",
+  "description": "Ver los puntos de fuga y el horizonte de una escena real con la cámara del móvil.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icono-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
