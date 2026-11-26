@@ -6,7 +6,7 @@
 // reproducir y comparar resultados (necesario para el estudio docente).
 // =============================================================================
 
-export const VERSION = '0.7.0';
+export const VERSION = '0.7.1';
 
 // Autoría y créditos (pantalla de inicio, Ajustes → Acerca de, exportaciones)
 export const CREDITOS = {
@@ -67,6 +67,7 @@ export const CONFIG = {
   toleranciaHorizontal: 8,   // grados de inclinación máxima para llamarla "horizontal" (más: pendiente)
   verticalImagenGrados: 25,  // las líneas de la familia vertical son casi verticales EN LA IMAGEN
   verticalSensorGrados: 15,  // y (con sensor) su punto de fuga está en la dirección de la gravedad
+  verticalDistanciaMinRel: 0.6, // sin sensor: la fuga vertical debe estar a más de 0,6 lados largos del centro
   // Escalera vista de frente: pendiente construida por la línea de narices
   escaleraMinPeldanos: 5,    // extremos alineados de al menos N peldaños distintos
   escaleraLongitudMinRel: 0.08, // longitud mínima de una nariz (relativa al lado largo)

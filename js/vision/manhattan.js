@@ -148,6 +148,9 @@ function buscarVertical(familias, puntos, datos, cam, arriba, cfg) {
     const P = puntos[k];
     const dir = Math.abs(P[2]) < 1e-9 ? [P[0], P[1]] : [P[0] / P[2] - cam.cx, P[1] / P[2] - cam.cy];
     if (Math.abs(dir[1]) < Math.abs(dir[0])) return;           // su punto de fuga debe estar arriba o abajo
+    // y lejos del centro: una fuga vertical cerca del centro exigiría mirar al cielo o al suelo
+    // (sin este filtro, la fuga de profundidad de un pasillo se confunde con la vertical)
+    if (Math.abs(P[2]) > 1e-9 && !arriba && Math.hypot(dir[0], dir[1]) < cfg.verticalDistanciaMinRel * Math.max(cam.cx, cam.cy) * 2) return;
     if (arriba && Math.hypot(arriba[0], arriba[1]) > 0.05 &&
         anguloRectas2D(dir, [arriba[0], arriba[1]]) > cfg.verticalSensorGrados) return;
     if (f.longitud > apoyo) { apoyo = f.longitud; mejor = k; }
