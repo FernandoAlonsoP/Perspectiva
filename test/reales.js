@@ -34,6 +34,7 @@ for (const n of nombres) {
     horizonte: r.horizonte?.fuente ?? null,
     comprobacion: r.comprobacion,
     imagen: c.toDataURL('image/jpeg', 0.8),
+    depuracion: new URLSearchParams(location.search).get('debug') ? { segs: Array.from(r.segmentos).map((v) => Math.round(v)), fam: Array.from(r.familiaSeg), tipos: r.familias.map((f) => f.tipo), puntos: r.familias.map((f) => f.punto) } : undefined,
   });
 }
 window.__resultado = salida;

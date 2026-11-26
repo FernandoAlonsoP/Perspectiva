@@ -9,6 +9,7 @@
 import { CONFIG } from '../config.js';
 import { detectarSegmentos } from './segmentos.js';
 import { prepararSegmentos, detectarFamilias, buscarFamiliaGuiada } from './fuga.js';
+import { buscarEscaleraFrontal } from './escalera.js';
 import { resolverEstructura, calcularHorizonte, horizonteSensor } from './manhattan.js';
 import { aImagen, aleatorio, mmAPx, pxAMm, rectaDesdeNormal, errorAngular, cruz, normalizar, anguloDirecciones } from './geometria.js';
 
@@ -102,6 +103,17 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
   familias.forEach((f, k) => { f.inliers = []; });
   for (let i = 0; i < n; i++) if (asignada[i] >= 0) familias[asignada[i]].inliers.push(i);
 
+  // 5b. Escalera vista de frente: la pendiente como alineación de las narices
+  //     (recta virtual), si no se ha encontrado ya una pendiente con aristas reales.
+  if (!familias.some((f) => f.tipo === 'inclinada')) {
+    const esc = buscarEscaleraFrontal(segmentos, n, familias, cam, cfg, lado, aleatorio(cfg.semilla + 2));
+    if (esc) {
+      familias.push({ v: esc.v, tipo: 'inclinada', pendiente: esc.pendiente, vPlanta: esc.vPlanta,
+        inliers: [], longitud: 0, construida: true, virtuales: esc.virtuales });
+      puntosV.push(aImagen(esc.v, cam));
+    }
+  }
+
   // 6. Residuales por segmento y resultado en píxeles de la imagen original
   const familiaSeg = new Int8Array(n).fill(-1);
   const residualSeg = new Float32Array(n);
@@ -121,6 +133,8 @@ export function analizar(gris, ancho, alto, op = {}, cfg = CONFIG) {
       tipo: f.tipo,
       guiada: !!f.guiada,
       pendiente: f.pendiente,
+      construida: !!f.construida,
+      virtuales: f.virtuales ? f.virtuales.map((q) => q.map((c) => c * escala)) : undefined,
       puntoPlanta: f.vPlanta ? (() => { const P = aImagen(f.vPlanta, cam); return [P[0] * escala, P[1] * escala, P[2]]; })() : undefined,
       nSegmentos: f.inliers.length,
       longitudRel: f.longitud / lado,

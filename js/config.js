@@ -6,7 +6,7 @@
 // reproducir y comparar resultados (necesario para el estudio docente).
 // =============================================================================
 
-export const VERSION = '0.6.1';
+export const VERSION = '0.7.0';
 
 // Autoría y créditos (pantalla de inicio, Ajustes → Acerca de, exportaciones)
 export const CREDITOS = {
@@ -67,6 +67,15 @@ export const CONFIG = {
   toleranciaHorizontal: 8,   // grados de inclinación máxima para llamarla "horizontal" (más: pendiente)
   verticalImagenGrados: 25,  // las líneas de la familia vertical son casi verticales EN LA IMAGEN
   verticalSensorGrados: 15,  // y (con sensor) su punto de fuga está en la dirección de la gravedad
+  // Escalera vista de frente: pendiente construida por la línea de narices
+  escaleraMinPeldanos: 5,    // extremos alineados de al menos N peldaños distintos
+  escaleraLongitudMinRel: 0.08, // longitud mínima de una nariz (relativa al lado largo)
+  escaleraTolPx: 2,        // distancia máxima de un extremo a la línea de narices (px de análisis)
+  escaleraTolRel: 0.0022,
+  escaleraIteraciones: 600,
+  escaleraPendienteMin: 15,  // grados: rango plausible de una escalera
+  escaleraPendienteMax: 55,
+  escaleraAcuerdo: 5,        // grados: las líneas de narices izquierda y derecha deben coincidir
   pendienteMinima: 15,       // grados: por debajo no es escalera/cubierta, sino horizontal mal medida
   alineacionPendiente: 10,   // grados: la planta de una pendiente debe seguir una dirección del edificio
   toleranciaManhattan: 3,    // grados de margen para considerar dos direcciones perpendiculares

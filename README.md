@@ -31,6 +31,7 @@ No hay instalación, cuentas, servidor ni analítica. **Todo se procesa en el m�
 2. **Puntos de fuga**: un círculo si caen en la pantalla y una flecha con la distancia si caen fuera.
 3. **Líneas de fuga**: como máximo 5 por familia horizontal. Cada una sale del punto de fuga, pasa por una arista real (resaltada) y llega al borde de la imagen. Son **afiladas**: gruesas cerca del observador, finas y transparentes al llegar al punto de fuga. Se prefieren aristas largas y alejadas del punto de fuga, porque las cercanas apenas lo confirman.
 4. **Pendientes** (naranja): escaleras, rampas, cubiertas. Se etiquetan con su ángulo («PF pendiente 34°») y se dibuja la recta discontinua que une la fuga de su planta (sobre el horizonte) con la fuga vertical: la fuga de la pendiente cae sobre ella, porque las tres direcciones están en un mismo plano vertical. Solo con la vista nivelada esa recta se ve vertical en pantalla. En una escalera de ida y vuelta, la misma recta contiene la fuga del tramo que sube y la del que baja.
+   **Escalera vista de frente:** no tiene aristas inclinadas; la pendiente solo existe como alineación de los extremos de las narices de los peldaños. La app busca esas alineaciones (al menos 5 peldaños) y, si su fuga cae en la recta fuga de la planta–fuga vertical con un ángulo plausible (15–55°), la dibuja como «PF pendiente NN° (narices)», con la línea de narices en discontinuo. Tiende a quedarse 1–2° corta.
 5. **Verticales**: solo si convergen de forma visible (móvil inclinado). Con el móvil a plomo son paralelas y no se dibujan.
 6. Opcional, en Ajustes → Capas: todas las aristas detectadas, la rejilla y la comparación con el sensor.
 
@@ -103,7 +104,7 @@ node test/e2e.mjs salon vertical   # lo mismo con otra escena y en vertical
 
 ### Resultado del banco (v0.6.0)
 
-Hay 10 escenas sintéticas: cubo en 1 punto; cubo en 2 puntos a 26 mm y a 16 mm; pasillo; calle; fachada vista desde abajo; calle con teleobjetivo de 50 mm; edificio con vegetación delante; salón casi frontal de poco contraste; y vegetación sin arquitectura. Cada una se analiza en calidad vivo y alta, con y sin sensor: **42/42 superadas**, incluida una escalera sintética de 31,3° que se mide como 30,8–30,9°.
+Hay 10 escenas sintéticas: cubo en 1 punto; cubo en 2 puntos a 26 mm y a 16 mm; pasillo; calle; fachada vista desde abajo; calle con teleobjetivo de 50 mm; edificio con vegetación delante; salón casi frontal de poco contraste; y vegetación sin arquitectura. Cada una se analiza en calidad vivo y alta, con y sin sensor: **46/46 superadas**, incluidas una escalera sintética de 31,3° vista en diagonal (medida: 30,8–30,9°) y otra vista de frente, sin aristas inclinadas (medida por la línea de narices: 29,5–30,0°).
 
 **Fotos reales** (`node test/reales.mjs`, con fotos en `test/fotos/`, que **no se suben** al repositorio por privacidad): cocina, peana y dos escaleras. Las pendientes de las escaleras se miden en 33–35°, valores típicos de una escalera doméstica.
 
@@ -207,6 +208,7 @@ Este desarrollo forma parte de una investigación sobre co-autoría con agentes 
 | 2026-11-25 | v0.5.0 · Logotipo oficial en negativo | Facilitado por el profesor en negro sobre blanco; solo se ha invertido, sin redibujar | Profesor |
 | 2026-11-25 | v0.5.1 · «Expresión Gráfica Arquitectónica» en lugar del nombre de la asignatura; nombres completos de los autores con su titulación; inicio sin desplazamiento en cualquier móvil (ajustes por altura de pantalla, verificado de 553 a 852 px de alto) | Petición del profesor | Profesor |
 | 2026-11-25 | v0.6.0 · Escaleras y pendientes: cuarta familia, vertical reconocida en la imagen, focal elegida por coherencia (no por un solo par), pendiente con su ángulo y traza vertical hasta el PF de su planta; pendientes no arquitectónicas descartadas | Prueba real: la escalera no se reconocía. Diagnóstico con las fotos originales: la pendiente se tomaba como perpendicular a la vertical → focal de 74–78 mm en vez de ~26 mm | Profesor (fotos y pregunta), agente (diagnóstico y solución) |
+| 2026-11-26 | v0.7.0 · Escalera vista de frente: pendiente construida por la línea de narices (alineación de extremos de peldaños), validada contra la recta fuga de la planta–fuga vertical | El profesor pidió que la app reconociera la escalera frontal de la ETSA, donde no aparecía ninguna pendiente | Profesor (petición), agente (solución) |
 | 2026-11-25 | Sin cámara simulada en móvil: queda pendiente probar en iPhone y Android reales | No se puede verificar desde el entorno de desarrollo | — |
 
 ## Referencias técnicas

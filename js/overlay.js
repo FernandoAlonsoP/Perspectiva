@@ -22,7 +22,7 @@ export function etiquetarFamilias(familias) {
     if (f.tipo === 'vertical') { f.color = COLORES.vertical; f.etiqueta = 'PF vertical'; }
     if (f.tipo === 'inclinada') {
       f.color = COLORES.inclinada;
-      f.etiqueta = f.pendiente != null ? `PF pendiente ${Math.round(f.pendiente)}°` : 'PF inclinado';
+      f.etiqueta = f.pendiente != null ? `PF pendiente ${Math.round(f.pendiente)}°${f.construida ? ' (narices)' : ''}` : 'PF inclinado';
     }
   }
 }
@@ -270,6 +270,24 @@ export function dibujarSuperposicion(ctx, r, T, op = {}) {
       }
       // la arista real que sostiene la línea, resaltada
       lineaConHalo(ctx, a, b, f.color, 4 * g, g);
+    }
+  });
+
+  // 3b. Pendientes CONSTRUIDAS (escalera de frente): la línea de narices es una
+  //     recta virtual que une los extremos de los peldaños; se dibuja discontinua
+  //     sobre los peldaños y se prolonga hasta la fuga de la pendiente.
+  r.familias.forEach((f) => {
+    if (!f.virtuales) return;
+    const vp = cartesianoLienzo(T, f.punto, limite);
+    for (const q of f.virtuales) {
+      const a = aLienzo(T, q[0], q[1]), b = aLienzo(T, q[2], q[3]);
+      if (vp) {
+        const lejos = Math.hypot(a[0] - vp[0], a[1] - vp[1]) > Math.hypot(b[0] - vp[0], b[1] - vp[1]) ? a : b;
+        lineaAfilada(ctx, lejos, vp, f.color, 2.6 * g, 0.4 * g, g);
+      }
+      ctx.setLineDash([9 * g, 6 * g]);
+      lineaConHalo(ctx, a, b, f.color, 4 * g, g);
+      ctx.setLineDash([]);
     }
   });
 

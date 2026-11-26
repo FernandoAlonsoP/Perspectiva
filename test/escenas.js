@@ -310,6 +310,27 @@ export const ESCENAS = [
     ruido: 8,
   },
   {
+    nombre: 'escalera-frontal',
+    descripcion: 'Escalera vista de frente entre dos muros (31,3°): sin aristas inclinadas, solo la línea de narices',
+    camara: { posicion: [0.05, 1.6, 0.4], guinada: 0, cabeceo: 4 },
+    pendientes: [{ dir: [0, 0.17, 0.28], grados: Math.atan2(0.17, 0.28) * 180 / Math.PI }],
+    polys: () => {
+      const PIEDRA = [205, 200, 192], LADRILLO2 = [170, 90, 60];
+      const z0 = 3, n = 14, h = 0.17, t = 0.28;
+      const out = [...suelo(-4, 4, -1, 3, 1, [200, 170, 130])];
+      for (let i = 0; i < n; i++) out.push(...caja(-0.6, 0, z0 + i * t, 0.6, (i + 1) * h, z0 + (i + 1) * t + 0.02, PIEDRA));
+      // muros laterales como caras interiores troceadas por peldaño (orden de pintado correcto)
+      for (let i = -1; i <= n + 3; i++) {
+        const za = z0 + i * t, zb = za + t;
+        out.push({ p: [[-0.6, 0, za], [-0.6, 2.6, za], [-0.6, 2.6, zb], [-0.6, 0, zb]], c: LADRILLO2, k: 0.8 });
+        out.push({ p: [[0.6, 0, za], [0.6, 2.6, za], [0.6, 2.6, zb], [0.6, 0, zb]], c: LADRILLO2, k: 0.65 });
+      }
+      out.push({ p: [[-4, 0, 9], [4, 0, 9], [4, 4, 9], [-4, 4, 9]], c: [235, 235, 230], k: 0.95 });
+      return out;
+    },
+    ruido: 8,
+  },
+  {
     nombre: 'sin-estructura',
     descripcion: 'Vegetación y curvas: debe decir "no se detectan líneas fiables"',
     organica: true,
